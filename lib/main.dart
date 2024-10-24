@@ -1,5 +1,12 @@
 // lib/main.dart
+import 'package:app_school/screens/admin/admin_dashboard.dart';
+import 'package:app_school/screens/auth/create_new_password_screen.dart';
+import 'package:app_school/screens/auth/forgot_password_screen.dart';
 import 'package:app_school/screens/auth/login_screen.dart';
+import 'package:app_school/screens/courses/courses_screen.dart';
+import 'package:app_school/screens/profile/profile_screen.dart';
+import 'package:app_school/screens/ranks/ranks_screen.dart';
+import 'package:app_school/screens/xcode/xcode_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/splash/splash_screen.dart';
@@ -63,6 +70,16 @@ class MyApp extends StatelessWidget {
         '/': (context) => const SplashScreen(),
         '/onboarding': (context) => const OnboardingScreen(),
         '/login': (context) => const LoginScreen(),
+        '/forgot-password': (context) => const ForgotPasswordScreen(),
+        '/create-password': (context) => const CreateNewPasswordScreen(),
+        '/admin-dashboard': (context) => const AdminDashboard(),
+        // '/teacher-dashboard': (context) => const TeacherDashboard(),
+        // '/student-dashboard': (context) => const StudentDashboard(),
+        // '/parent-dashboard': (context) => const ParentDashboard(),
+        '/mes-cours': (context) => const CoursesScreen(),
+        '/xcode': (context) => const XCodeScreen(),
+        '/ranks': (context) => const RanksScreen(),
+        '/profile': (context) => const ProfileScreen(),
       },
       // Gestionnaire de routes pour les routes non définies
       onUnknownRoute: (settings) {
