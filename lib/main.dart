@@ -6,6 +6,13 @@ import 'package:app_school/screens/auth/login_screen.dart';
 import 'package:app_school/screens/courses/courses_screen.dart';
 import 'package:app_school/screens/profile/profile_screen.dart';
 import 'package:app_school/screens/ranks/ranks_screen.dart';
+import 'package:app_school/screens/student/student_course_detail_screen.dart';
+import 'package:app_school/screens/student/student_courses_screen.dart';
+import 'package:app_school/screens/student/student_dashboard.dart';
+import 'package:app_school/screens/student/student_quiz_screen.dart';
+import 'package:app_school/screens/student/student_ranks_screen.dart';
+import 'package:app_school/screens/student/student_tp_screen.dart';
+import 'package:app_school/screens/student/student_xcode_screen.dart';
 import 'package:app_school/screens/xcode/xcode_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -72,14 +79,42 @@ class MyApp extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/forgot-password': (context) => const ForgotPasswordScreen(),
         '/create-password': (context) => const CreateNewPasswordScreen(),
+
+        //Routes admin
         '/admin-dashboard': (context) => const AdminDashboard(),
-        // '/teacher-dashboard': (context) => const TeacherDashboard(),
-        // '/student-dashboard': (context) => const StudentDashboard(),
-        // '/parent-dashboard': (context) => const ParentDashboard(),
-        '/mes-cours': (context) => const CoursesScreen(),
-        '/xcode': (context) => const XCodeScreen(),
-        '/ranks': (context) => const RanksScreen(),
-        '/profile': (context) => const ProfileScreen(),
+        '/admin/courses': (context) => const CoursesScreen(),
+        '/admin/xcode': (context) => const XCodeScreen(),
+        '/admin/ranks': (context) => const RanksScreen(),
+        'admin/profile': (context) => const ProfileScreen(),
+
+        // Routes Etudiants
+        '/student-dashboard': (context) => const StudentDashboard(),
+        '/student/courses': (context) => const StudentCoursesScreen(),
+        '/student/xcode': (context) => const StudentXCodeScreen(),
+        '/student/ranks': (context) => const StudentRanksScreen(),
+        '/student/profile': (context) => const ProfileScreen(),
+        '/student/course-detail': (context) => StudentCourseDetailScreen(
+              courseTitle: ModalRoute.of(context)!.settings.arguments as String,
+            ),
+        '/student/quiz': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          return StudentQuizScreen(
+            moduleTitle: args['title']!,
+            courseTitle: args['courseTitle']!,
+          );
+        },
+        '/student/tp': (context) {
+          final args = ModalRoute.of(context)!.settings.arguments
+              as Map<String, dynamic>;
+          return StudentTPScreen(
+            moduleTitle: args['title']!,
+            courseTitle: args['courseTitle']!,
+          );
+        },
+
+        // Routes professeurs
+        // Routes parents
       },
       // Gestionnaire de routes pour les routes non définies
       onUnknownRoute: (settings) {
