@@ -1,4 +1,5 @@
 // lib/screens/student/student_course_detail_screen.dart
+import 'package:app_school/screens/student/tp/student_tp_screen.dart';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../../models/course_module.dart';
@@ -60,14 +61,26 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
 
   void _navigateToContent(ModuleContent content) {
     if (!content.isCompleted) {
-      Navigator.pushNamed(
-        context,
-        content.type == ContentType.quiz ? '/student/quiz' : '/student/tp',
-        arguments: {
-          'title': content.title,
-          'courseTitle': widget.courseTitle,
-        },
-      );
+      if (content.type == ContentType.quiz) {
+        Navigator.pushNamed(
+          context,
+          '/student/quiz',
+          arguments: {
+            'title': content.title,
+            'courseTitle': widget.courseTitle,
+          },
+        );
+      } else if (content.type == ContentType.tp) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => StudentTPScreen(
+              moduleTitle: content.title,
+              courseTitle: widget.courseTitle,
+            ),
+          ),
+        );
+      }
     }
   }
 
