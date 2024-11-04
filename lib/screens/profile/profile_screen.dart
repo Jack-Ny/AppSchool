@@ -29,13 +29,13 @@ class _ProfileScreenState extends State<ProfileScreen> {
           Navigator.pushReplacementNamed(context, '/admin-dashboard');
           break;
         case 1:
-          Navigator.pushReplacementNamed(context, '/mes-cours');
+          Navigator.pushReplacementNamed(context, '/admin/courses');
           break;
         case 2:
-          Navigator.pushReplacementNamed(context, '/xcode');
+          Navigator.pushReplacementNamed(context, '/admin/xcode');
           break;
         case 3:
-          Navigator.pushReplacementNamed(context, '/ranks');
+          Navigator.pushReplacementNamed(context, '/admin/ranks');
           break;
         case 4:
           // Déjà sur la page profil

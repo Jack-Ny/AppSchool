@@ -87,7 +87,7 @@ class MyApp extends StatelessWidget {
         '/admin/courses': (context) => const CoursesScreen(),
         '/admin/xcode': (context) => const XCodeScreen(),
         '/admin/ranks': (context) => const RanksScreen(),
-        'admin/profile': (context) => const ProfileScreen(),
+        '/admin/profile': (context) => const ProfileScreen(),
 
         // Routes Etudiants
         '/student-dashboard': (context) => const StudentDashboard(),

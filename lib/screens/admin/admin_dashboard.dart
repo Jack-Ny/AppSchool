@@ -77,16 +77,16 @@ class _AdminDashboardState extends State<AdminDashboard> {
           setState(() => _selectedIndex = 0);
           break;
         case 1: // MES COURS
-          Navigator.pushReplacementNamed(context, '/mes-cours');
+          Navigator.pushReplacementNamed(context, '/admin/courses');
           break;
         case 2: // XCODE
-          Navigator.pushReplacementNamed(context, '/xcode');
+          Navigator.pushReplacementNamed(context, '/admin/xcode');
           break;
         case 3: // RANGS
-          Navigator.pushReplacementNamed(context, '/ranks');
+          Navigator.pushReplacementNamed(context, '/admin/ranks');
           break;
         case 4: // PROFILS
-          Navigator.pushReplacementNamed(context, '/profile');
+          Navigator.pushReplacementNamed(context, 'admin/profile');
           break;
       }
     }
@@ -163,7 +163,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                         TextButton(
                           onPressed: () {
                             Navigator.pushReplacementNamed(
-                                context, '/mes-cours');
+                                context, '/admin/courses');
                           },
                           child: Row(
                             children: const [

@@ -53,11 +53,11 @@ class _CoursesScreenState extends State<CoursesScreen> {
     if (index == 0) {
       Navigator.pushReplacementNamed(context, '/admin-dashboard');
     } else if (index == 2) {
-      Navigator.pushReplacementNamed(context, '/xcode');
+      Navigator.pushReplacementNamed(context, '/admin/xcode');
     } else if (index == 3) {
-      Navigator.pushReplacementNamed(context, '/ranks');
+      Navigator.pushReplacementNamed(context, '/admin/ranks');
     } else if (index == 4) {
-      Navigator.pushReplacementNamed(context, '/profile');
+      Navigator.pushReplacementNamed(context, '/admin/profile');
     }
   }
 
@@ -68,7 +68,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
       appBar: AppBar(
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: AppColors.textDark),
-          onPressed: () => Navigator.pop(context),
+          onPressed: () =>
+              Navigator.pushReplacementNamed(context, '/admin-dashboard'),
         ),
         title: const Text(
           'Cours',

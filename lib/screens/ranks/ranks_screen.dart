@@ -59,16 +59,16 @@ class _RanksScreenState extends State<RanksScreen> {
           Navigator.pushReplacementNamed(context, '/admin-dashboard');
           break;
         case 1:
-          Navigator.pushReplacementNamed(context, '/mes-cours');
+          Navigator.pushReplacementNamed(context, '/admin/courses');
           break;
         case 2:
-          Navigator.pushReplacementNamed(context, '/xcode');
+          Navigator.pushReplacementNamed(context, '/admin/xcode');
           break;
         case 3:
           // Déjà sur l'écran des rangs
           break;
         case 4:
-          Navigator.pushReplacementNamed(context, '/profile');
+          Navigator.pushReplacementNamed(context, '/admin/profile');
           break;
       }
     }
