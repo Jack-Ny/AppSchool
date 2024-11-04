@@ -6,10 +6,12 @@ import 'package:app_school/screens/auth/login_screen.dart';
 import 'package:app_school/screens/courses/courses_screen.dart';
 import 'package:app_school/screens/profile/profile_screen.dart';
 import 'package:app_school/screens/ranks/ranks_screen.dart';
+import 'package:app_school/screens/student/edit_profile_screen.dart';
 import 'package:app_school/screens/student/quiz/student_quiz_screen.dart';
 import 'package:app_school/screens/student/student_course_detail_screen.dart';
 import 'package:app_school/screens/student/student_courses_screen.dart';
 import 'package:app_school/screens/student/student_dashboard.dart';
+import 'package:app_school/screens/student/student_profile_screen.dart';
 import 'package:app_school/screens/student/student_ranks_screen.dart';
 import 'package:app_school/screens/student/student_tp_screen.dart';
 import 'package:app_school/screens/student/student_xcode_screen.dart';
@@ -92,7 +94,8 @@ class MyApp extends StatelessWidget {
         '/student/courses': (context) => const StudentCoursesScreen(),
         '/student/xcode': (context) => const StudentXCodeScreen(),
         '/student/ranks': (context) => const StudentRanksScreen(),
-        '/student/profile': (context) => const ProfileScreen(),
+        '/student/profile': (context) => const StudentProfileScreen(),
+        '/student/edit-profile': (context) => const EditStudentProfileScreen(),
         '/student/course-detail': (context) => StudentCourseDetailScreen(
               courseTitle: ModalRoute.of(context)!.settings.arguments as String,
             ),
