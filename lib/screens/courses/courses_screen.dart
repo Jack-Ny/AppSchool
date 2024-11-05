@@ -204,6 +204,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
           TextButton.icon(
             onPressed: () {
               // Implémenter l'ajout de cours
+              Navigator.pushReplacementNamed(context, '/admin/courses/add');
             },
             icon: const Icon(Icons.add, color: AppColors.primaryBlue),
             label: const Text(

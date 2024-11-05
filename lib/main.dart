@@ -1,8 +1,10 @@
 // lib/main.dart
+import 'package:app_school/models/quiz.dart';
 import 'package:app_school/screens/admin/admin_dashboard.dart';
 import 'package:app_school/screens/auth/create_new_password_screen.dart';
 import 'package:app_school/screens/auth/forgot_password_screen.dart';
 import 'package:app_school/screens/auth/login_screen.dart';
+import 'package:app_school/screens/courses/add_course_screen.dart';
 import 'package:app_school/screens/courses/courses_screen.dart';
 import 'package:app_school/screens/profile/profile_screen.dart';
 import 'package:app_school/screens/ranks/ranks_screen.dart';
@@ -16,6 +18,7 @@ import 'package:app_school/screens/student/student_ranks_screen.dart';
 import 'package:app_school/screens/student/student_tp_screen.dart';
 import 'package:app_school/screens/student/student_xcode_screen.dart';
 import 'package:app_school/screens/xcode/xcode_screen.dart';
+import 'package:app_school/widgets/common/quiz_creation_dialog.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/splash/splash_screen.dart';
@@ -85,6 +88,12 @@ class MyApp extends StatelessWidget {
         //Routes admin
         '/admin-dashboard': (context) => const AdminDashboard(),
         '/admin/courses': (context) => const CoursesScreen(),
+        '/admin/courses/add': (context) => const AddCourseScreen(),
+        'admin/courses/add/quiz': (context) => QuizCreationDialog(
+              onQuizCreated: (Quiz quiz) {
+                Navigator.pop(context, quiz);
+              },
+            ),
         '/admin/xcode': (context) => const XCodeScreen(),
         '/admin/ranks': (context) => const RanksScreen(),
         '/admin/profile': (context) => const ProfileScreen(),

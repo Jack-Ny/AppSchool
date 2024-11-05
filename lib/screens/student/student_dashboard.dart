@@ -135,7 +135,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                         TextButton(
                           onPressed: () {
                             Navigator.pushReplacementNamed(
-                                context, '//student/courses');
+                                context, '/student/courses');
                           },
                           child: Row(
                             children: const [

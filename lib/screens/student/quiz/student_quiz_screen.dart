@@ -1,7 +1,6 @@
-// lib/screens/student/quiz/student_quiz_screen.dart
 import 'package:flutter/material.dart';
 import '../../../constants/colors.dart';
-import '../../../models/quiz_models.dart';
+import '../../../models/quiz.dart';
 import 'quiz_result_screen.dart';
 
 class StudentQuizScreen extends StatefulWidget {
@@ -19,79 +18,76 @@ class StudentQuizScreen extends StatefulWidget {
 }
 
 class _StudentQuizScreenState extends State<StudentQuizScreen> {
-  late List<QuizQuestion> _questions;
+  late Quiz quiz;
   int _currentQuestionIndex = 0;
   final List<String?> _userAnswers = [];
-  String? _selectedAnswer;
 
   @override
   void initState() {
     super.initState();
-    _initQuestions();
-    // Initialiser le tableau des réponses avec null
-    _userAnswers.addAll(List.filled(_questions.length, null));
+    _initQuiz();
   }
 
-  void _initQuestions() {
-    _questions = [
-      QuizQuestion(
-        questionText: "Qu'est ce qu'une fonction récursive ?",
-        type: QuestionType.multipleChoice,
-        options: [
-          "Une fonction qui s'appelle elle meme",
-          "Une fonction qui s'auto-incrémente",
-          "Une fonction qui retourne une valeur nulle",
-          "Une fonction qui retourne NaN"
-        ],
-        correctAnswer: "Une fonction qui s'appelle elle meme",
-        questionNumber: 1,
-        totalQuestions: 10,
-      ),
-      QuizQuestion(
-        questionText: "Qu'est ce qu'une fonction récursive ?",
-        type: QuestionType.multipleChoice,
-        options: [
-          "Une fonction qui s'appelle elle meme",
-          "Une fonction qui s'auto-incrémente",
-          "Une fonction qui retourne une valeur nulle",
-          "Une fonction qui retourne NaN"
-        ],
-        correctAnswer: "Une fonction qui s'appelle elle meme",
-        questionNumber: 2,
-        totalQuestions: 10,
-      ),
-      QuizQuestion(
-        questionText: "Qu'est ce qu'une fonction récursive ?",
-        type: QuestionType.multipleChoice,
-        options: [
-          "Une fonction qui s'appelle elle meme",
-          "Une fonction qui s'auto-incrémente",
-          "Une fonction qui retourne une valeur nulle",
-          "Une fonction qui retourne NaN"
-        ],
-        correctAnswer: "Une fonction qui s'appelle elle meme",
-        questionNumber: 3,
-        totalQuestions: 10,
-      ),
-      // Ajouter d'autres questions ici
-    ];
+  void _initQuiz() {
+    quiz = Quiz(
+      title: widget.moduleTitle,
+      questions: [
+        Question(
+          questionText: "Qu'est ce qu'une fonction récursive ?",
+          type: QuestionType.selection,
+          answer: "Une fonction qui s'appelle elle meme",
+          points: 1,
+          choices: [
+            "Une fonction qui s'appelle elle meme",
+            "Une fonction qui s'auto-incrémente",
+            "Une fonction qui retourne une valeur nulle",
+            "Une fonction qui retourne NaN"
+          ],
+        ),
+        Question(
+          questionText: "Qu'est ce qu'une fonction récursive ?",
+          type: QuestionType.selection,
+          answer: "Une fonction qui s'appelle elle meme",
+          points: 1,
+          choices: [
+            "Une fonction qui s'appelle elle meme",
+            "Une fonction qui s'auto-incrémente",
+            "Une fonction qui retourne une valeur nulle",
+            "Une fonction qui retourne NaN"
+          ],
+        ),
+        Question(
+          questionText: "Qu'est ce qu'une fonction récursive ?",
+          type: QuestionType.selection,
+          answer: "Une fonction qui s'appelle elle meme",
+          points: 1,
+          choices: [
+            "Une fonction qui s'appelle elle meme",
+            "Une fonction qui s'auto-incrémente",
+            "Une fonction qui retourne une valeur nulle",
+            "Une fonction qui retourne NaN"
+          ],
+        ),
+      ],
+      timeLimit: 30,
+      timeUnit: 'minutes',
+    );
+    _userAnswers.addAll(List.filled(quiz.questions.length, null));
   }
 
   void _handleSelection(String answer) {
     setState(() {
-      _selectedAnswer = answer;
       _userAnswers[_currentQuestionIndex] = answer;
     });
   }
 
   void _handleNext() {
-    if (_selectedAnswer != null) {
+    if (_userAnswers[_currentQuestionIndex] != null) {
       setState(() {
-        if (_currentQuestionIndex == _questions.length - 1) {
+        if (_currentQuestionIndex == quiz.questions.length - 1) {
           _showResults();
         } else {
           _currentQuestionIndex++;
-          _selectedAnswer = _userAnswers[_currentQuestionIndex];
         }
       });
     }
@@ -101,7 +97,6 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     if (_currentQuestionIndex > 0) {
       setState(() {
         _currentQuestionIndex--;
-        _selectedAnswer = _userAnswers[_currentQuestionIndex];
       });
     }
   }
@@ -120,9 +115,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                 child: const Text('Non'),
               ),
               ElevatedButton(
-                onPressed: () {
-                  Navigator.of(context).pop(true);
-                },
+                onPressed: () => Navigator.of(context).pop(true),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                 ),
@@ -136,18 +129,20 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
 
   void _showResults() {
     int score = 0;
-    for (var i = 0; i < _questions.length; i++) {
-      if (_userAnswers[i] == _questions[i].correctAnswer) {
-        score++;
+    for (var i = 0; i < quiz.questions.length; i++) {
+      if (_userAnswers[i] == quiz.questions[i].answer) {
+        score += quiz.questions[i].points;
       }
     }
+
+    quiz.isCompleted = true;
 
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => QuizResultScreen(
           score: score,
-          totalQuestions: _questions.length,
+          totalQuestions: quiz.questions.length,
           userName: "Ouédraogo Zakaria",
           onReturnPressed: () {
             Navigator.pop(context);
@@ -159,6 +154,8 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final currentQuestion = quiz.questions[_currentQuestionIndex];
+
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
@@ -170,7 +167,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             }),
           ),
           title: Text(
-            widget.moduleTitle,
+            quiz.title,
             style: const TextStyle(
               color: Colors.black,
               fontSize: 20,
@@ -183,13 +180,13 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         body: Column(
           children: [
             LinearProgressIndicator(
-              value: (_currentQuestionIndex + 1) / _questions.length,
+              value: (_currentQuestionIndex + 1) / quiz.questions.length,
               backgroundColor: Colors.grey[200],
               valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
             ),
             Expanded(
               child: SingleChildScrollView(
-                child: _buildQuestionCard(_questions[_currentQuestionIndex]),
+                child: _buildQuestionCard(currentQuestion),
               ),
             ),
             _buildNavigationButtons(),
@@ -199,7 +196,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     );
   }
 
-  Widget _buildQuestionCard(QuizQuestion question) {
+  Widget _buildQuestionCard(Question question) {
     return Card(
       margin: const EdgeInsets.all(20),
       shape: RoundedRectangleBorder(
@@ -211,7 +208,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Question : ${question.questionNumber}/${question.totalQuestions}',
+              'Question : ${_currentQuestionIndex + 1}/${quiz.questions.length}',
               style: const TextStyle(
                 color: Colors.grey,
                 fontSize: 16,
@@ -226,17 +223,17 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               ),
             ),
             const SizedBox(height: 20),
-            _buildAnswerOptions(question),
+            if (question.choices != null) _buildAnswerOptions(question),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildAnswerOptions(QuizQuestion question) {
+  Widget _buildAnswerOptions(Question question) {
     return Column(
-      children: question.options.map((option) {
-        final isSelected = _selectedAnswer == option;
+      children: question.choices!.map((option) {
+        final isSelected = _userAnswers[_currentQuestionIndex] == option;
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: ElevatedButton(
@@ -297,7 +294,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
           else
             const SizedBox(width: 100),
           ElevatedButton(
-            onPressed: _selectedAnswer != null ? _handleNext : null,
+            onPressed: _userAnswers[_currentQuestionIndex] != null
+                ? _handleNext
+                : null,
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryBlue,
               disabledBackgroundColor: Colors.grey[300],
@@ -310,7 +309,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               ),
             ),
             child: Text(
-              _currentQuestionIndex == _questions.length - 1
+              _currentQuestionIndex == quiz.questions.length - 1
                   ? 'Terminer'
                   : 'Suivant',
             ),
