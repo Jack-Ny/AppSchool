@@ -86,7 +86,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Navigator.pushReplacementNamed(context, '/admin/ranks');
           break;
         case 4: // PROFILS
-          Navigator.pushReplacementNamed(context, 'admin/profile');
+          Navigator.pushReplacementNamed(context, '/admin/profile');
           break;
       }
     }

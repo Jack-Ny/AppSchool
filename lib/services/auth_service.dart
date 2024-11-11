@@ -1,19 +1,6 @@
 // lib/services/auth_service.dart
+import 'package:app_school/models/user.dart';
 import 'package:flutter/foundation.dart';
-
-class User {
-  final String id;
-  final String email;
-  final String userType;
-  final String name;
-
-  User({
-    required this.id,
-    required this.email,
-    required this.userType,
-    required this.name,
-  });
-}
 
 class AuthService {
   // Données de test pour les utilisateurs
