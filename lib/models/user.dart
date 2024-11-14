@@ -1,4 +1,4 @@
-class User {
+class AppUser {
   final String id;
   final String email;
   final String userType;
@@ -6,7 +6,7 @@ class User {
   final String? profilePicture;
   final DateTime createdAt;
 
-  User({
+  AppUser({
     required this.id,
     required this.email,
     required this.userType,
@@ -15,42 +15,25 @@ class User {
     required this.createdAt,
   });
 
-  factory User.fromFirestore(Map<String, dynamic> data, String id) {
-    return User(
-      id: id,
-      email: data['email'] ?? '',
-      userType: data['userType'] ?? '',
-      name: data['name'] ?? '',
-      profilePicture: data['profilePicture'],
-      createdAt: data['createdAt']?.toDate() ?? DateTime.now(),
+  factory AppUser.fromJson(Map<String, dynamic> json) {
+    return AppUser(
+      id: json['id']?.toString() ?? '',
+      email: json['email']?.toString() ?? '',
+      userType: json['user_type']?.toString() ?? '',
+      name: json['name']?.toString() ?? '',
+      profilePicture: json['profile_picture']?.toString(),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'])
+          : DateTime.now(),
     );
   }
 
-  Map<String, dynamic> toJson() {
-    return {
-      'email': email,
-      'userType': userType,
-      'name': name,
-      'profilePicture': profilePicture,
-      'createdAt': createdAt,
-    };
-  }
-
-  User copyWith({
-    String? id,
-    String? email,
-    String? userType,
-    String? name,
-    String? profilePicture,
-    DateTime? createdAt,
-  }) {
-    return User(
-      id: id ?? this.id,
-      email: email ?? this.email,
-      userType: userType ?? this.userType,
-      name: name ?? this.name,
-      profilePicture: profilePicture ?? this.profilePicture,
-      createdAt: createdAt ?? this.createdAt,
-    );
-  }
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'email': email,
+        'user_type': userType,
+        'name': name,
+        'profile_picture': profilePicture,
+        'created_at': createdAt.toIso8601String(),
+      };
 }

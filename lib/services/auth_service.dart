@@ -1,61 +1,144 @@
-// lib/services/auth_service.dart
-import 'package:app_school/models/user.dart';
 import 'package:flutter/foundation.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../config/supabase_config.dart';
+import '../models/user.dart';
+
+class AuthException implements Exception {
+  final String message;
+  AuthException(this.message);
+
+  @override
+  String toString() => message;
+}
 
 class AuthService {
-  // Données de test pour les utilisateurs
-  static final Map<String, User> _users = {
-    'admin@tpsc.com': User(
-      id: '1',
-      email: 'admin@tpsc.com',
-      userType: 'admin',
-      name: 'Admin Principal',
-    ),
-    'student@tpsc.com': User(
-      id: '2',
-      email: 'student@tpsc.com',
-      userType: 'student',
-      name: 'Étudiant Test',
-    ),
-    'teacher@tpsc.com': User(
-      id: '3',
-      email: 'teacher@tpsc.com',
-      userType: 'teacher',
-      name: 'Mr Ouédraogo',
-    ),
-    'parent@tpsc.com': User(
-      id: '4',
-      email: 'parent@tpsc.com',
-      userType: 'parent',
-      name: 'Parent Test',
-    ),
-  };
+  final _supabase = SupabaseConfig.client;
 
-  // Mots de passe de test
-  static final Map<String, String> _passwords = {
-    'admin@tpsc.com': 'admin123',
-    'student@tpsc.com': 'student123',
-    'teacher@tpsc.com': 'teacher123',
-    'parent@tpsc.com': 'parent123',
-  };
-
-  // Méthode de connexion
-  Future<User?> login(String email, String password) async {
-    // Simuler un délai réseau
-    await Future.delayed(const Duration(milliseconds: 1500));
-
+  // Inscription
+  Future<AppUser> register({
+    required String email,
+    required String password,
+    required String name,
+    required String userType,
+  }) async {
     try {
-      // Vérifier si l'email existe et si le mot de passe correspond
-      if (_passwords[email] == password) {
-        return _users[email];
+      final authResponse = await _supabase.auth.signUp(
+        email: email,
+        password: password,
+      );
+
+      if (authResponse.user == null) {
+        throw AuthException('Échec de l\'inscription');
       }
-      return null;
+
+      final userData = {
+        'id': authResponse.user!.id,
+        'email': email,
+        'name': name,
+        'user_type': userType,
+        'created_at': DateTime.now().toIso8601String(),
+      };
+
+      await _supabase.from('users').insert(userData);
+
+      switch (userType) {
+        case 'student':
+          await _supabase.from('students').insert({
+            'user_id': authResponse.user!.id,
+            'registration_number':
+                'STD${DateTime.now().millisecondsSinceEpoch}',
+            'class_level': 'Nouveau',
+          });
+          break;
+        case 'teacher':
+          await _supabase.from('teachers').insert({
+            'user_id': authResponse.user!.id,
+            'specialization': 'À définir',
+          });
+          break;
+        case 'parent':
+          await _supabase.from('parents').insert({
+            'user_id': authResponse.user!.id,
+          });
+          break;
+      }
+
+      return AppUser.fromJson(userData);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Erreur lors de l\'inscription: $e');
+      }
+      throw AuthException('Erreur lors de l\'inscription: $e');
+    }
+  }
+
+  // Connexion
+  Future<AppUser> login({
+    required String email,
+    required String password,
+  }) async {
+    try {
+      final response = await _supabase.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+
+      if (response.user == null) {
+        throw AuthException('Échec de la connexion');
+      }
+
+      final userData = await _supabase
+          .from('users')
+          .select()
+          .eq('id', response.user!.id)
+          .single();
+
+      return AppUser.fromJson(userData);
     } catch (e) {
       if (kDebugMode) {
         print('Erreur de connexion: $e');
       }
+      throw AuthException('Email ou mot de passe incorrect');
+    }
+  }
+
+  // Déconnexion
+  Future<void> logout() async {
+    await _supabase.auth.signOut();
+  }
+
+  // Vérifier si l'utilisateur est connecté
+  Future<AppUser?> getCurrentUser() async {
+    try {
+      final currentUser = _supabase.auth.currentUser;
+      if (currentUser == null) return null;
+
+      final userData = await _supabase
+          .from('users')
+          .select()
+          .eq('id', currentUser.id)
+          .single();
+
+      return AppUser.fromJson(userData);
+    } catch (e) {
       return null;
     }
+  }
+
+  // Stream pour l'état de l'authentification
+  Stream<AppUser?> authStateChanges() {
+    return _supabase.auth.onAuthStateChange.asyncMap((event) async {
+      final user = event.session?.user;
+      if (user == null) return null;
+
+      try {
+        final userData =
+            await _supabase.from('users').select().eq('id', user.id).single();
+        return AppUser.fromJson(userData);
+      } catch (e) {
+        return null;
+      }
+    });
   }
 
   // Obtenir la route initiale selon le type d'utilisateur
@@ -74,24 +157,6 @@ class AuthService {
     }
   }
 
-  // Obtenir une route spécifique pour un type d'utilisateur
-  String getRouteForUser(String userType, String route) {
-    if (userType.isEmpty || route.isEmpty) return '/login';
-
-    switch (userType.toLowerCase()) {
-      case 'admin':
-        return '/admin/$route';
-      case 'student':
-        return '/student/$route';
-      case 'teacher':
-        return '/teacher/$route';
-      case 'parent':
-        return '/parent/$route';
-      default:
-        return '/login';
-    }
-  }
-
   // Validation de l'email
   bool validateEmail(String email) {
     return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
@@ -99,34 +164,38 @@ class AuthService {
 
   // Validation du mot de passe
   bool validatePassword(String password) {
-    // Au moins 6 caractères
     return password.length >= 6;
   }
 
-  // Vérifier si un utilisateur est connecté (à implémenter avec persistance)
-  Future<bool> isLoggedIn() async {
-    // Implémenter la vérification de session
-    return false;
+  // Réinitialisation du mot de passe
+  Future<void> resetPassword(String email) async {
+    await _supabase.auth.resetPasswordForEmail(email);
   }
 
-  // Déconnexion (à implémenter avec persistance)
-  Future<void> logout() async {
-    // Implémenter la déconnexion
-    // Effacer les données de session
-  }
+  // Mettre à jour le profil utilisateur
+  Future<AppUser?> updateUserProfile({
+    required String userId,
+    String? name,
+    String? profilePicture,
+  }) async {
+    try {
+      final updates = <String, dynamic>{};
+      if (name != null) updates['name'] = name;
+      if (profilePicture != null) updates['profile_picture'] = profilePicture;
 
-  // Obtenir les informations de l'utilisateur actuel (à implémenter avec persistance)
-  Future<User?> getCurrentUser() async {
-    // Implémenter la récupération de l'utilisateur actuel
-    return null;
-  }
+      if (updates.isNotEmpty) {
+        await _supabase.from('users').update(updates).eq('id', userId);
+      }
 
-  // Obtenir le type d'utilisateur à partir d'une route
-  String getUserTypeFromRoute(String route) {
-    if (route.startsWith('/admin')) return 'admin';
-    if (route.startsWith('/student')) return 'student';
-    if (route.startsWith('/teacher')) return 'teacher';
-    if (route.startsWith('/parent')) return 'parent';
-    return '';
+      final userData =
+          await _supabase.from('users').select().eq('id', userId).single();
+
+      return AppUser.fromJson(userData);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Erreur lors de la mise à jour du profil: $e');
+      }
+      rethrow;
+    }
   }
 }

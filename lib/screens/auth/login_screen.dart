@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../services/auth_service.dart';
+import '../../models/user.dart'; // Assurez-vous que c'est votre AppUser
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({Key? key}) : super(key: key);
@@ -49,7 +50,6 @@ class _LoginScreenState extends State<LoginScreen> {
   }
 
   Future<void> _handleLogin() async {
-    // Cacher le clavier
     FocusScope.of(context).unfocus();
 
     if (!_formKey.currentState!.validate()) {
@@ -62,28 +62,28 @@ class _LoginScreenState extends State<LoginScreen> {
     });
 
     try {
-      final user = await _authService.login(
-        _emailController.text.trim(),
-        _passwordController.text,
+      final appUser = await _authService.login(
+        email: _emailController.text.trim(),
+        password: _passwordController.text,
       );
 
       if (!mounted) return;
 
-      if (user != null) {
-        // Si "Se souvenir de moi" est coché, sauvegarder les identifiants
-        if (_rememberMe) {
-          // Implémenter la sauvegarde des identifiants
-        }
-
-        Navigator.pushReplacementNamed(
-          context,
-          _authService.getInitialRoute(user.userType),
-        );
-      } else {
-        setState(() {
-          _errorMessage = 'Email ou mot de passe incorrect';
-        });
+      // Si "Se souvenir de moi" est coché
+      if (_rememberMe) {
+        // TODO: Implementer la persistance des credentials
+        // Vous pouvez utiliser shared_preferences ici
       }
+
+      // Naviguer vers la page appropriée
+      Navigator.pushReplacementNamed(
+        context,
+        _authService.getInitialRoute(appUser.userType),
+      );
+    } on AuthException catch (e) {
+      setState(() {
+        _errorMessage = e.toString();
+      });
     } catch (e) {
       setState(() {
         _errorMessage = 'Une erreur est survenue. Veuillez réessayer.';
@@ -97,6 +97,7 @@ class _LoginScreenState extends State<LoginScreen> {
     }
   }
 
+  // Le reste de votre UI reste identique
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
@@ -154,24 +155,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     ),
                   ),
                   const SizedBox(height: 48),
-                  // Texte de connexion
-                  const Text(
-                    'Veuillez vous connectez',
-                    style: TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Color(0xFF1E1E1E),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'Connectez vous a votre compte pour la suite',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
 
                   // Message d'erreur
                   if (_errorMessage != null)
@@ -254,8 +237,36 @@ class _LoginScreenState extends State<LoginScreen> {
                         ],
                       ),
                       TextButton(
-                        onPressed: () {
-                          Navigator.pushNamed(context, '/forgot-password');
+                        onPressed: () async {
+                          if (_emailController.text.isNotEmpty) {
+                            try {
+                              await _authService
+                                  .resetPassword(_emailController.text);
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Email de réinitialisation envoyé'),
+                                  ),
+                                );
+                              }
+                            } catch (e) {
+                              if (mounted) {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text(
+                                        'Erreur lors de l\'envoi de l\'email'),
+                                  ),
+                                );
+                              }
+                            }
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('Veuillez entrer votre email'),
+                              ),
+                            );
+                          }
                         },
                         child: const Text(
                           'Mot de passe oublie ?',

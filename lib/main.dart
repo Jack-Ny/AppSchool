@@ -1,13 +1,19 @@
-// lib/main.dart
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
+import 'package:supabase_flutter/supabase_flutter.dart' hide Provider;
+import 'package:provider/provider.dart' as provider;
 import 'package:app_school/models/quiz.dart';
 import 'package:app_school/screens/admin/admin_dashboard.dart';
 import 'package:app_school/screens/auth/create_new_password_screen.dart';
 import 'package:app_school/screens/auth/forgot_password_screen.dart';
 import 'package:app_school/screens/auth/login_screen.dart';
 import 'package:app_school/screens/courses/add_course_screen.dart';
+import 'package:app_school/screens/courses/add_quiz_screen.dart';
 import 'package:app_school/screens/courses/courses_screen.dart';
+import 'package:app_school/screens/onboarding/onboarding_screen.dart';
 import 'package:app_school/screens/profile/profile_screen.dart';
 import 'package:app_school/screens/ranks/ranks_screen.dart';
+import 'package:app_school/screens/splash/splash_screen.dart';
 import 'package:app_school/screens/student/edit_profile_screen.dart';
 import 'package:app_school/screens/student/quiz/student_quiz_screen.dart';
 import 'package:app_school/screens/student/student_course_detail_screen.dart';
@@ -18,22 +24,26 @@ import 'package:app_school/screens/student/student_ranks_screen.dart';
 import 'package:app_school/screens/student/student_tp_screen.dart';
 import 'package:app_school/screens/student/student_xcode_screen.dart';
 import 'package:app_school/screens/xcode/xcode_screen.dart';
-import 'package:app_school/widgets/common/quiz_creation_dialog.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
-import 'screens/splash/splash_screen.dart';
-import 'screens/onboarding/onboarding_screen.dart';
-import 'constants/colors.dart';
+import 'package:app_school/config/supabase_config.dart';
+import 'package:app_school/providers/auth_provider.dart';
+import 'package:app_school/constants/colors.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  // Forcer l'orientation portrait
-  SystemChrome.setPreferredOrientations([
+
+  // Initialiser Supabase
+  await Supabase.initialize(
+    url: SupabaseConfig.supabaseUrl,
+    anonKey: SupabaseConfig.supabaseAnonKey,
+  );
+
+  // Configuration de l'orientation
+  await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
     DeviceOrientation.portraitDown,
   ]);
 
-  // Personnaliser la barre d'état
+  // Configuration de la barre d'état
   SystemChrome.setSystemUIOverlayStyle(
     const SystemUiOverlayStyle(
       statusBarColor: Colors.transparent,
@@ -49,91 +59,94 @@ class MyApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'TPsc',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        primaryColor: AppColors.primaryBlue,
-        scaffoldBackgroundColor: Colors.white,
-        appBarTheme: const AppBarTheme(
-          elevation: 0,
-          color: Colors.transparent,
-          iconTheme: IconThemeData(color: AppColors.textDark),
+    return provider.MultiProvider(
+      providers: [
+        provider.ChangeNotifierProvider(
+          create: (_) => AuthProvider(),
         ),
-        // Configuration des boutons par défaut
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppColors.primaryBlue,
-            foregroundColor: Colors.white,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
+      ],
+      child: MaterialApp(
+        title: 'TPsc',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          primaryColor: AppColors.primaryBlue,
+          scaffoldBackgroundColor: Colors.white,
+          appBarTheme: const AppBarTheme(
+            elevation: 0,
+            color: Colors.transparent,
+            iconTheme: IconThemeData(color: AppColors.textDark),
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryBlue,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
             ),
           ),
+          textTheme: const TextTheme(
+            bodyLarge: TextStyle(color: AppColors.textDark),
+            bodyMedium: TextStyle(color: AppColors.textDark),
+          ),
         ),
-        // Configuration du texte par défaut
-        textTheme: const TextTheme(
-          bodyLarge: TextStyle(color: AppColors.textDark),
-          bodyMedium: TextStyle(color: AppColors.textDark),
-        ),
+        initialRoute: '/splash',
+        routes: {
+          // Routes d'authentification et initiales
+          '/splash': (context) => const SplashScreen(),
+          '/onboarding': (context) => const OnboardingScreen(),
+          '/login': (context) => const LoginScreen(),
+          '/forgot-password': (context) => const ForgotPasswordScreen(),
+          '/create-password': (context) => const CreateNewPasswordScreen(),
+
+          // Routes Admin
+          '/admin-dashboard': (context) => const AdminDashboard(),
+          '/admin/courses': (context) => const CoursesScreen(),
+          '/admin/courses/add': (context) => const AddCourseScreen(),
+          '/admin/courses/add/quiz': (context) => QuizCreationDialog(
+                onQuizCreated: (Quiz quiz) {
+                  Navigator.pop(context, quiz);
+                },
+              ),
+          '/admin/xcode': (context) => const XCodeScreen(),
+          '/admin/ranks': (context) => const RanksScreen(),
+          '/admin/profile': (context) => const ProfileScreen(),
+
+          // Routes Étudiants
+          '/student-dashboard': (context) => const StudentDashboard(),
+          '/student/courses': (context) => const StudentCoursesScreen(),
+          '/student/xcode': (context) => const StudentXCodeScreen(),
+          '/student/ranks': (context) => const StudentRanksScreen(),
+          '/student/profile': (context) => const StudentProfileScreen(),
+          '/student/edit-profile': (context) =>
+              const EditStudentProfileScreen(),
+          '/student/course-detail': (context) => StudentCourseDetailScreen(
+                courseTitle:
+                    ModalRoute.of(context)!.settings.arguments as String,
+              ),
+          '/student/quiz': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments
+                as Map<String, dynamic>;
+            return StudentQuizScreen(
+              moduleTitle: args['title']!,
+              courseTitle: args['courseTitle']!,
+            );
+          },
+          '/student/tp': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments
+                as Map<String, dynamic>;
+            return StudentTPScreen(
+              moduleTitle: args['title']!,
+              courseTitle: args['courseTitle']!,
+            );
+          },
+        },
+        onUnknownRoute: (settings) {
+          return MaterialPageRoute(
+            builder: (context) => const SplashScreen(),
+          );
+        },
       ),
-      // Routes initiales
-      initialRoute: '/',
-      routes: {
-        '/': (context) => const SplashScreen(),
-        '/onboarding': (context) => const OnboardingScreen(),
-        '/login': (context) => const LoginScreen(),
-        '/forgot-password': (context) => const ForgotPasswordScreen(),
-        '/create-password': (context) => const CreateNewPasswordScreen(),
-
-        //Routes admin
-        '/admin-dashboard': (context) => const AdminDashboard(),
-        '/admin/courses': (context) => const CoursesScreen(),
-        '/admin/courses/add': (context) => const AddCourseScreen(),
-        'admin/courses/add/quiz': (context) => QuizCreationDialog(
-              onQuizCreated: (Quiz quiz) {
-                Navigator.pop(context, quiz);
-              },
-            ),
-        '/admin/xcode': (context) => const XCodeScreen(),
-        '/admin/ranks': (context) => const RanksScreen(),
-        '/admin/profile': (context) => const ProfileScreen(),
-
-        // Routes Etudiants
-        '/student-dashboard': (context) => const StudentDashboard(),
-        '/student/courses': (context) => const StudentCoursesScreen(),
-        '/student/xcode': (context) => const StudentXCodeScreen(),
-        '/student/ranks': (context) => const StudentRanksScreen(),
-        '/student/profile': (context) => const StudentProfileScreen(),
-        '/student/edit-profile': (context) => const EditStudentProfileScreen(),
-        '/student/course-detail': (context) => StudentCourseDetailScreen(
-              courseTitle: ModalRoute.of(context)!.settings.arguments as String,
-            ),
-        '/student/quiz': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return StudentQuizScreen(
-            moduleTitle: args['title']!,
-            courseTitle: args['courseTitle']!,
-          );
-        },
-        '/student/tp': (context) {
-          final args = ModalRoute.of(context)!.settings.arguments
-              as Map<String, dynamic>;
-          return StudentTPScreen(
-            moduleTitle: args['title']!,
-            courseTitle: args['courseTitle']!,
-          );
-        },
-
-        // Routes professeurs
-        // Routes parents
-      },
-      // Gestionnaire de routes pour les routes non définies
-      onUnknownRoute: (settings) {
-        return MaterialPageRoute(
-          builder: (context) => const SplashScreen(),
-        );
-      },
     );
   }
 }

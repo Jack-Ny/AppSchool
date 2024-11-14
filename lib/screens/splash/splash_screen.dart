@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart' as provider;
 import '../../constants/colors.dart';
 import '../../constants/text_styles.dart';
+import '../../providers/auth_provider.dart';
+import '../../services/auth_service.dart';
 import '../onboarding/onboarding_screen.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -14,8 +17,28 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    // Navigation automatique après 3 secondes
-    Future.delayed(const Duration(seconds: 3), () {
+    _initializeAndNavigate();
+  }
+
+  Future<void> _initializeAndNavigate() async {
+    await Future.delayed(const Duration(seconds: 2));
+
+    if (!mounted) return;
+
+    final authProvider =
+        provider.Provider.of<AuthProvider>(context, listen: false);
+
+    if (authProvider.isAuthenticated) {
+      final userType = authProvider.user?.userType;
+      if (userType != null) {
+        if (!mounted) return;
+        Navigator.pushReplacementNamed(
+          context,
+          AuthService().getInitialRoute(userType),
+        );
+      }
+    } else {
+      if (!mounted) return;
       Navigator.pushReplacement(
         context,
         PageRouteBuilder(
@@ -27,12 +50,11 @@ class _SplashScreenState extends State<SplashScreen> {
           transitionDuration: const Duration(milliseconds: 500),
         ),
       );
-    });
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Obtenir les dimensions de l'écran pour la responsivité
     final Size screenSize = MediaQuery.of(context).size;
 
     return Scaffold(
@@ -54,7 +76,6 @@ class _SplashScreenState extends State<SplashScreen> {
               child: Stack(
                 alignment: Alignment.center,
                 children: [
-                  // Points décoratifs
                   Positioned(
                     top: 20,
                     right: 30,
@@ -65,8 +86,6 @@ class _SplashScreenState extends State<SplashScreen> {
                     right: 50,
                     child: _buildDecorationDot(12),
                   ),
-
-                  // Icône centrale
                   Container(
                     width: 80,
                     height: 80,
