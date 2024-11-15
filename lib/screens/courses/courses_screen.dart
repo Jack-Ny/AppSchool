@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/colors.dart';
+import '../../services/course_service.dart';
 import 'course_students_screen.dart';
 
 class CoursesScreen extends StatefulWidget {
@@ -10,44 +12,67 @@ class CoursesScreen extends StatefulWidget {
 }
 
 class _CoursesScreenState extends State<CoursesScreen> {
-  bool _isCoursTab = true;
+  final CourseService _courseService = CourseService();
   final _searchController = TextEditingController();
 
-  final List<Map<String, dynamic>> _courses = [
-    {
-      'title': 'Graphic Design Advanced',
-      'category': 'Codage Informatique',
-      'students': 12,
-      'instructor': 'Mr Ouedraogo',
-      'image': 'assets/images/course_image.jpg',
-    },
-    {
-      'title': 'Web Development',
-      'category': 'Codage Informatique',
-      'students': 15,
-      'instructor': 'Mme Kaboré',
-      'image': 'assets/images/course_image2.jpg',
-    },
-    // Ajoutez d'autres cours ici
-  ];
+  bool _isCoursTab = true;
+  bool _isLoading = false;
 
-  final List<Map<String, dynamic>> _teachers = [
-    {
-      'name': 'Mr Ouedraogo',
-      'subject': 'Codage Informatique',
-      'image': 'assets/images/teacher1.jpg',
-    },
-    {
-      'name': 'Mr Martin',
-      'subject': 'Robotique',
-      'image': 'assets/images/teacher2.jpg',
-    },
-    {
-      'name': 'Mme Sawadogo',
-      'subject': 'Mecanique',
-      'image': 'assets/images/teacher3.jpg',
-    },
-  ];
+  List<Map<String, dynamic>> _courses = [];
+  List<Map<String, dynamic>> _filteredCourses = [];
+  List<Map<String, dynamic>> _teachers = [];
+  List<Map<String, dynamic>> _filteredTeachers = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadData();
+    _searchController.addListener(_filterData);
+  }
+
+  Future<void> _loadData() async {
+    setState(() => _isLoading = true);
+    try {
+      final courses = await _courseService.getAllCourses();
+      final teachers = await _courseService.getAllTeachers();
+
+      setState(() {
+        _courses = courses;
+        _filteredCourses = courses;
+        _teachers = teachers;
+        _filteredTeachers = teachers;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e'), backgroundColor: Colors.red),
+        );
+      }
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _filterData() {
+    final query = _searchController.text.toLowerCase();
+    setState(() {
+      if (_isCoursTab) {
+        _filteredCourses = _courses.where((course) {
+          return course['name'].toString().toLowerCase().contains(query) ||
+              course['category'].toString().toLowerCase().contains(query);
+        }).toList();
+      } else {
+        _filteredTeachers = _teachers.where((teacher) {
+          final userData = teacher['user'] as Map<String, dynamic>;
+          return userData['name'].toString().toLowerCase().contains(query) ||
+              teacher['specialization']
+                  .toString()
+                  .toLowerCase()
+                  .contains(query);
+        }).toList();
+      }
+    });
+  }
 
   void _onBottomNavTap(int index) {
     if (index == 0) {
@@ -82,92 +107,85 @@ class _CoursesScreenState extends State<CoursesScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Container(
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(15),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: Row(
-                children: [
-                  const Padding(
-                    padding: EdgeInsets.all(12.0),
-                    child: Icon(Icons.search, color: Colors.grey),
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _searchController,
-                      decoration: const InputDecoration(
-                        hintText: 'Recherche .......',
-                        border: InputBorder.none,
-                        hintStyle: TextStyle(color: Colors.grey),
-                      ),
-                    ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(8),
-                    margin: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: const Icon(Icons.tune, color: Colors.white),
-                  ),
-                ],
-              ),
-            ),
-          ),
-
-          // Onglets
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20.0),
-            child: Row(
+      body: _isLoading
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
               children: [
+                _buildSearchBar(),
+                _buildTabs(),
+                const SizedBox(height: 20),
                 Expanded(
-                  child: _buildTab('Cours', _isCoursTab, () {
-                    setState(() => _isCoursTab = true);
-                  }),
-                ),
-                const SizedBox(width: 15),
-                Expanded(
-                  child: _buildTab('Formateurs', !_isCoursTab, () {
-                    setState(() => _isCoursTab = false);
-                  }),
+                  child:
+                      _isCoursTab ? _buildCoursesView() : _buildTeachersView(),
                 ),
               ],
             ),
-          ),
+      bottomNavigationBar: _buildBottomNavigationBar(),
+    );
+  }
 
-          const SizedBox(height: 20),
-
-          // Contenu des onglets
-          Expanded(
-            child: _isCoursTab ? _buildCoursesView() : _buildTeachersView(),
-          ),
-        ],
+  Widget _buildSearchBar() {
+    return Padding(
+      padding: const EdgeInsets.all(20.0),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(15),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withOpacity(0.05),
+              blurRadius: 10,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Row(
+          children: [
+            const Padding(
+              padding: EdgeInsets.all(12.0),
+              child: Icon(Icons.search, color: Colors.grey),
+            ),
+            Expanded(
+              child: TextField(
+                controller: _searchController,
+                decoration: const InputDecoration(
+                  hintText: 'Recherche .......',
+                  border: InputBorder.none,
+                  hintStyle: TextStyle(color: Colors.grey),
+                ),
+              ),
+            ),
+            Container(
+              padding: const EdgeInsets.all(8),
+              margin: const EdgeInsets.all(4),
+              decoration: BoxDecoration(
+                color: AppColors.primaryBlue,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: const Icon(Icons.tune, color: Colors.white),
+            ),
+          ],
+        ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: 1,
-        onTap: _onBottomNavTap,
-        type: BottomNavigationBarType.fixed,
-        selectedItemColor: AppColors.primaryBlue,
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'BORD'),
-          BottomNavigationBarItem(icon: Icon(Icons.book), label: 'MES COURS'),
-          BottomNavigationBarItem(icon: Icon(Icons.code), label: 'XCODE'),
-          BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'RANGS'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILS'),
+    );
+  }
+
+  Widget _buildTabs() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20.0),
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildTab('Cours', _isCoursTab, () {
+              setState(() => _isCoursTab = true);
+            }),
+          ),
+          const SizedBox(width: 15),
+          Expanded(
+            child: _buildTab('Formateurs', !_isCoursTab, () {
+              setState(() => _isCoursTab = false);
+            }),
+          ),
         ],
       ),
     );
@@ -203,7 +221,6 @@ class _CoursesScreenState extends State<CoursesScreen> {
         children: [
           TextButton.icon(
             onPressed: () {
-              // Implémenter l'ajout de cours
               Navigator.pushReplacementNamed(context, '/admin/courses/add');
             },
             icon: const Icon(Icons.add, color: AppColors.primaryBlue),
@@ -213,11 +230,13 @@ class _CoursesScreenState extends State<CoursesScreen> {
             ),
           ),
           Expanded(
-            child: ListView.builder(
-              itemCount: _courses.length,
-              itemBuilder: (context, index) =>
-                  _buildCourseCard(_courses[index]),
-            ),
+            child: _filteredCourses.isEmpty
+                ? const Center(child: Text('Aucun cours trouvé'))
+                : ListView.builder(
+                    itemCount: _filteredCourses.length,
+                    itemBuilder: (context, index) =>
+                        _buildCourseCard(_filteredCourses[index]),
+                  ),
           ),
         ],
       ),
@@ -225,6 +244,9 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   Widget _buildCourseCard(Map<String, dynamic> course) {
+    final teacherData = course['teacher_courses']?[0]?['teacher']?['user'];
+    final enrollmentsCount = course['enrollments']?.length ?? 0;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
@@ -269,7 +291,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     borderRadius: BorderRadius.circular(4),
                   ),
                   child: Text(
-                    course['category'],
+                    course['category'] ?? 'Non catégorisé',
                     style: TextStyle(
                       color: AppColors.primaryBlue,
                       fontSize: 12,
@@ -278,7 +300,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  course['title'],
+                  course['name'] ?? '',
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
@@ -293,7 +315,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                           context,
                           MaterialPageRoute(
                             builder: (context) => CourseStudentsScreen(
-                              courseName: course['title'],
+                              courseName: course['name'],
                             ),
                           ),
                         );
@@ -314,7 +336,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                                 size: 16, color: Colors.grey[600]),
                             const SizedBox(width: 4),
                             Text(
-                              '${course['students']} Élèves',
+                              '$enrollmentsCount Élèves',
                               style: TextStyle(
                                 color: Colors.grey[600],
                                 fontSize: 14,
@@ -326,18 +348,14 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     ),
                     const Spacer(),
                     TextButton(
-                      onPressed: () {
-                        // Implémenter la modification
-                      },
+                      onPressed: () => _showEditCourseDialog(course),
                       child: const Text('Modifier'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primaryBlue,
                       ),
                     ),
                     TextButton(
-                      onPressed: () {
-                        // Implémenter la suppression
-                      },
+                      onPressed: () => _confirmDeleteCourse(course['id']),
                       child: const Text('Supprimer'),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.red,
@@ -354,14 +372,21 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   Widget _buildTeachersView() {
+    if (_filteredTeachers.isEmpty) {
+      return const Center(child: Text('Aucun formateur trouvé'));
+    }
+
     return ListView.builder(
       padding: const EdgeInsets.symmetric(horizontal: 20.0),
-      itemCount: _teachers.length,
-      itemBuilder: (context, index) => _buildTeacherCard(_teachers[index]),
+      itemCount: _filteredTeachers.length,
+      itemBuilder: (context, index) =>
+          _buildTeacherCard(_filteredTeachers[index]),
     );
   }
 
   Widget _buildTeacherCard(Map<String, dynamic> teacher) {
+    final teacherData = teacher['teachers'] as Map<String, dynamic>;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
       decoration: BoxDecoration(
@@ -380,22 +405,173 @@ class _CoursesScreenState extends State<CoursesScreen> {
         leading: CircleAvatar(
           radius: 30,
           backgroundColor: Colors.grey[200],
-          child: const Icon(Icons.person, color: Colors.grey),
+          child: Text(
+            teacher['name']?[0]?.toUpperCase() ?? '?',
+            style: const TextStyle(fontSize: 24, color: Colors.grey),
+          ),
         ),
         title: Text(
-          teacher['name'],
+          teacher['name'] ?? 'Sans nom',
           style: const TextStyle(
             fontWeight: FontWeight.bold,
             fontSize: 16,
           ),
         ),
         subtitle: Text(
-          teacher['subject'],
+          teacherData['specialization'] ?? 'Formateur',
           style: const TextStyle(
             color: Colors.grey,
           ),
         ),
       ),
     );
+  }
+
+  Widget _buildBottomNavigationBar() {
+    return BottomNavigationBar(
+      currentIndex: 1,
+      onTap: _onBottomNavTap,
+      type: BottomNavigationBarType.fixed,
+      selectedItemColor: AppColors.primaryBlue,
+      unselectedItemColor: Colors.grey,
+      items: const [
+        BottomNavigationBarItem(icon: Icon(Icons.home), label: 'BORD'),
+        BottomNavigationBarItem(icon: Icon(Icons.book), label: 'MES COURS'),
+        BottomNavigationBarItem(icon: Icon(Icons.code), label: 'XCODE'),
+        BottomNavigationBarItem(icon: Icon(Icons.bar_chart), label: 'RANGS'),
+        BottomNavigationBarItem(icon: Icon(Icons.person), label: 'PROFILS'),
+      ],
+    );
+  }
+
+  Future<void> _confirmDeleteCourse(String courseId) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: const Text('Voulez-vous vraiment supprimer ce cours ?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Supprimer'),
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _courseService.deleteCourse(courseId);
+        await _loadData(); // Recharger les données
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cours supprimé avec succès'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur lors de la suppression: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  Future<void> _showEditCourseDialog(Map<String, dynamic> course) async {
+    final nameController = TextEditingController(text: course['name']);
+    final categoryController = TextEditingController(text: course['category']);
+    final descriptionController =
+        TextEditingController(text: course['description']);
+
+    await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Modifier le cours'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: nameController,
+                decoration: const InputDecoration(
+                  labelText: 'Nom du cours',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: categoryController,
+                decoration: const InputDecoration(
+                  labelText: 'Catégorie',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () async {
+              try {
+                await _courseService.updateCourse(
+                  courseId: course['id'],
+                  title: nameController.text,
+                  category: categoryController.text,
+                  description: descriptionController.text,
+                );
+
+                if (!mounted) return;
+                Navigator.pop(context);
+                await _loadData(); // Recharger les données
+
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Cours mis à jour avec succès'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Erreur lors de la mise à jour: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
+            },
+            child: const Text('Enregistrer'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
   }
 }

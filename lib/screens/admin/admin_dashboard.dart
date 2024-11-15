@@ -1,4 +1,5 @@
 import 'package:app_school/screens/users/users_screen.dart';
+import 'package:app_school/services/dashboard_service.dart';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
@@ -10,13 +11,55 @@ class AdminDashboard extends StatefulWidget {
 }
 
 class _AdminDashboardState extends State<AdminDashboard> {
+  final DashboardService _dashboardService = DashboardService();
   int _selectedIndex = 0;
   String _selectedFilter = 'Tout';
+  bool _isLoading = true;
+
+  Map<String, int> _stats = {
+    'users': 0,
+    'courses': 0,
+    'tps': 0,
+    'quizzes': 0,
+  };
+
+  List<Map<String, dynamic>> _courses = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadDashboardData();
+  }
+
+  Future<void> _loadDashboardData() async {
+    setState(() => _isLoading = true);
+    try {
+      final stats = await _dashboardService.getDashboardStats();
+      final courses = await _dashboardService.getRecentCourses();
+
+      print('Stats: $stats'); // Pour le débogage
+      print('Courses: $courses'); // Pour le débogage
+
+      setState(() {
+        _stats = stats;
+        _courses = courses;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
 
   final List<Map<String, dynamic>> _statsCards = [
     {
       'title': 'UTILISATEURS',
-      'count': '22',
+      'statKey': 'users',
       'icon': Icons.people,
       'color': AppColors.userCard,
       'gradient': const LinearGradient(
@@ -27,7 +70,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     },
     {
       'title': 'COURS',
-      'count': '22',
+      'statKey': 'courses',
       'icon': Icons.school,
       'color': AppColors.courseCard,
       'gradient': const LinearGradient(
@@ -38,7 +81,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     },
     {
       'title': 'TPS',
-      'count': '22',
+      'statKey': 'tps',
       'icon': Icons.assignment,
       'color': AppColors.tpCard,
       'gradient': const LinearGradient(
@@ -49,7 +92,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
     },
     {
       'title': 'QUIZZ',
-      'count': '22',
+      'statKey': 'quizzes',
       'icon': Icons.quiz,
       'color': AppColors.quizCard,
       'gradient': const LinearGradient(
@@ -58,16 +101,6 @@ class _AdminDashboardState extends State<AdminDashboard> {
         colors: [Color(0xFFFFB74D), Color(0xFFFFA000)],
       ),
     },
-  ];
-
-  final List<Map<String, dynamic>> _courses = [
-    {
-      'title': 'Conception de programme',
-      'category': 'Informatique',
-      'instructor': 'Mr Ouédraogo',
-      'students': 12,
-    },
-    // Ajoutez d'autres cours ici
   ];
 
   void _onBottomNavTap(int index) {
@@ -246,7 +279,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
           Navigator.push(
             context,
             MaterialPageRoute(builder: (context) => const UsersScreen()),
-          );
+          ).then((_) => _loadDashboardData()); // recharger
         }
       },
       child: Container(
@@ -262,43 +295,49 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ],
         ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.2),
-                borderRadius: BorderRadius.circular(10),
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(
+                  valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                ),
+              )
+            : Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Icon(
+                      card['icon'],
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                  const Spacer(),
+                  Text(
+                    _stats[card['statKey']]?.toString() ?? '0',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    card['title'],
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.9),
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                ],
               ),
-              child: Icon(
-                card['icon'],
-                color: Colors.white,
-                size: 24,
-              ),
-            ),
-            const Spacer(),
-            Text(
-              card['count'],
-              style: const TextStyle(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              card['title'],
-              style: TextStyle(
-                color: Colors.white.withOpacity(0.9),
-                fontSize: 12,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }
@@ -325,6 +364,11 @@ class _AdminDashboardState extends State<AdminDashboard> {
   }
 
   Widget _buildCourseCard(Map<String, dynamic> course) {
+    final teacherName = course['teacher_courses']?[0]?['teacher']?['user']
+            ?['name'] ??
+        'Non assigné';
+    final studentCount = course['enrollments']?.length ?? 0;
+
     return Card(
       margin: const EdgeInsets.only(bottom: 15),
       elevation: 2,
@@ -378,7 +422,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 Icon(Icons.people, size: 16, color: AppColors.textGrey),
                 const SizedBox(width: 4),
                 Text(
-                  '${course['students']}',
+                  studentCount.toString(),
                   style: const TextStyle(
                     color: AppColors.textGrey,
                     fontSize: 14,
@@ -386,7 +430,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
                 ),
                 const Spacer(),
                 Text(
-                  course['instructor'],
+                  teacherName,
                   style: const TextStyle(
                     color: AppColors.textDark,
                     fontWeight: FontWeight.w500,

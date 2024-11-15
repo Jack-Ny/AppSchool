@@ -1,16 +1,18 @@
-import 'package:app_school/screens/student/tp/student_tp_screen.dart';
+import 'package:app_school/screens/student/quiz/student_quiz_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/colors.dart';
-import '../../models/course.dart';
-import '../../models/module.dart';
-import '../../models/quiz.dart';
-import '../../models/tp.dart';
+import 'student_tp_screen.dart';
 
 class StudentCourseDetailScreen extends StatefulWidget {
+  final String tpId;
+  final String courseId;
   final String courseTitle;
 
   const StudentCourseDetailScreen({
     Key? key,
+    required this.tpId,
+    required this.courseId,
     required this.courseTitle,
   }) : super(key: key);
 
@@ -20,75 +22,102 @@ class StudentCourseDetailScreen extends StatefulWidget {
 }
 
 class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
-  late Course course;
+  final _supabase = Supabase.instance.client;
+  bool _isLoading = true;
+  List<Map<String, dynamic>> _modules = [];
+  double _progress = 0.0;
 
   @override
   void initState() {
     super.initState();
-    _initCourse();
+    _loadCourseData();
   }
 
-  void _initCourse() {
-    course = Course(
-      name: widget.courseTitle,
-      modules: [
-        Module(
-          name: 'Module 1 : Introduction',
-          quizzes: [
-            Quiz(
-              title: 'QUIZZ : Algorithme',
-              questions: [],
-              timeLimit: 30,
-              timeUnit: 'minutes',
-              isCompleted: true,
-            ),
-          ],
-          tps: [
-            TP(
-              title: 'TPs : Algorithme',
-              description: 'Exercices pratiques sur les algorithmes',
-              isCompleted: true,
-            ),
-          ],
-        ),
-        Module(
-          name: 'Module 2 : Algorithme',
-          quizzes: [
-            Quiz(
-              title: 'QUIZZ : Algorithme',
-              questions: [],
-              timeLimit: 30,
-              timeUnit: 'minutes',
-            ),
-          ],
-          tps: [
-            TP(
-              title: 'TPs : Algorithme',
-              description: 'Exercices pratiques sur les algorithmes',
-            ),
-          ],
-        ),
-      ],
-    );
+  Future<void> _loadCourseData() async {
+    try {
+      // Charger les modules
+      final modulesData = await _supabase.from('modules').select('''
+           *,
+           quizzes:quizzes(*),
+           tps:tps(*)
+         ''').eq('course_id', widget.courseId);
+
+      // Charger la progression de l'étudiant
+      final userId = _supabase.auth.currentUser?.id;
+      final quizAttempts = await _supabase
+          .from('quiz_attempts')
+          .select()
+          .eq('student_id', userId);
+
+      final tpSubmissions = await _supabase
+          .from('tp_submissions')
+          .select()
+          .eq('student_id', userId);
+
+      setState(() {
+        _modules = List<Map<String, dynamic>>.from(modulesData);
+        _calculateProgress(quizAttempts, tpSubmissions);
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur: $e')),
+        );
+      }
+    }
   }
 
-  void _navigateToContent(String contentTitle, String type, bool isCompleted) {
+  void _calculateProgress(
+      List<dynamic> quizAttempts, List<dynamic> tpSubmissions) {
+    int totalItems = 0;
+    int completedItems = 0;
+
+    for (var module in _modules) {
+      final quizzes = List<Map<String, dynamic>>.from(module['quizzes'] ?? []);
+      final tps = List<Map<String, dynamic>>.from(module['tps'] ?? []);
+
+      totalItems += quizzes.length + tps.length;
+
+      for (var quiz in quizzes) {
+        if (quizAttempts.any((attempt) => attempt['quiz_id'] == quiz['id'])) {
+          completedItems++;
+        }
+      }
+
+      for (var tp in tps) {
+        if (tpSubmissions
+            .any((submission) => submission['tp_id'] == tp['id'])) {
+          completedItems++;
+        }
+      }
+    }
+
+    _progress = totalItems > 0 ? completedItems / totalItems : 0.0;
+  }
+
+  void _navigateToContent(
+      String contentId, String type, bool isCompleted, String moduleTitle) {
     if (!isCompleted) {
       if (type == 'quiz') {
-        Navigator.pushNamed(
+        Navigator.push(
           context,
-          '/student/quiz',
-          arguments: {
-            'title': contentTitle,
-            'courseTitle': widget.courseTitle,
-          },
+          MaterialPageRoute(
+            builder: (context) => StudentQuizScreen(
+              quizId: contentId,
+              moduleId: moduleTitle,
+              moduleTitle: moduleTitle,
+              courseTitle: widget.courseTitle,
+            ),
+          ),
         );
       } else if (type == 'tp') {
         Navigator.push(
           context,
           MaterialPageRoute(
             builder: (context) => StudentTPScreen(
-              moduleTitle: contentTitle,
+              tpId: contentId,
+              moduleTitle: moduleTitle,
               courseTitle: widget.courseTitle,
             ),
           ),
@@ -97,27 +126,13 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
     }
   }
 
-  double _calculateProgress() {
-    int total = 0;
-    int completed = 0;
-
-    for (var module in course.modules) {
-      for (var quiz in module.quizzes) {
-        total++;
-        if (quiz.isCompleted) completed++;
-      }
-      for (var tp in module.tps) {
-        total++;
-        if (tp.isCompleted) completed++;
-      }
-    }
-
-    return total > 0 ? completed / total : 0.0;
-  }
-
   @override
   Widget build(BuildContext context) {
-    final progress = _calculateProgress();
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
 
     return Scaffold(
       body: SafeArea(
@@ -125,10 +140,10 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildHeader(progress),
+              _buildHeader(),
               const SizedBox(height: 20),
               _buildModulesList(),
-              if (progress < 1.0) _buildContinueButton(),
+              if (_progress < 1.0) _buildContinueButton(),
             ],
           ),
         ),
@@ -137,15 +152,15 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
     );
   }
 
-  Widget _buildHeader(double progress) {
+  Widget _buildHeader() {
     return Stack(
       children: [
         Container(
           height: 240,
           width: double.infinity,
-          decoration: const BoxDecoration(
-            color: Colors.blue,
-            image: DecorationImage(
+          decoration: BoxDecoration(
+            color: AppColors.primaryBlue,
+            image: const DecorationImage(
               image: AssetImage('assets/images/code_bg.jpg'),
               fit: BoxFit.cover,
             ),
@@ -189,13 +204,13 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
               ),
               const SizedBox(height: 8),
               LinearProgressIndicator(
-                value: progress,
+                value: _progress,
                 backgroundColor: Colors.white.withOpacity(0.3),
                 valueColor: const AlwaysStoppedAnimation<Color>(Colors.green),
               ),
               const SizedBox(height: 4),
               Text(
-                '${(progress * 100).toInt()}% complété',
+                '${(_progress * 100).toInt()}% complété',
                 style: const TextStyle(
                   color: Colors.white,
                   fontSize: 12,
@@ -213,12 +228,16 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
       padding: const EdgeInsets.symmetric(horizontal: 16),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: course.modules.map((module) {
+        children: _modules.map((module) {
+          final quizzes =
+              List<Map<String, dynamic>>.from(module['quizzes'] ?? []);
+          final tps = List<Map<String, dynamic>>.from(module['tps'] ?? []);
+
           return Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                module.name,
+                module['name'],
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
@@ -226,10 +245,20 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
                 ),
               ),
               const SizedBox(height: 12),
-              ...module.quizzes.map((quiz) =>
-                  _buildContentItem(quiz.title, 'quiz', quiz.isCompleted)),
-              ...module.tps.map(
-                  (tp) => _buildContentItem(tp.title, 'tp', tp.isCompleted)),
+              ...quizzes.map((quiz) => _buildContentItem(
+                    quiz['id'],
+                    quiz['title'],
+                    'quiz',
+                    false, // TODO: Check completion status
+                    module['name'],
+                  )),
+              ...tps.map((tp) => _buildContentItem(
+                    tp['id'],
+                    tp['title'],
+                    'tp',
+                    false, // TODO: Check completion status
+                    module['name'],
+                  )),
               const SizedBox(height: 24),
             ],
           );
@@ -238,18 +267,22 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
     );
   }
 
-  Widget _buildContentItem(String title, String type, bool isCompleted) {
+  Widget _buildContentItem(
+    String id,
+    String title,
+    String type,
+    bool isCompleted,
+    String moduleTitle,
+  ) {
     return InkWell(
-      onTap: () => _navigateToContent(title, type, isCompleted),
+      onTap: () => _navigateToContent(id, type, isCompleted, moduleTitle),
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
         decoration: BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.circular(12),
-          border: Border.all(
-            color: Colors.grey.shade200,
-          ),
+          border: Border.all(color: Colors.grey.shade200),
         ),
         child: Row(
           children: [
@@ -287,16 +320,22 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
       padding: const EdgeInsets.all(16),
       child: ElevatedButton(
         onPressed: () {
-          for (var module in course.modules) {
-            for (var quiz in module.quizzes) {
-              if (!quiz.isCompleted) {
-                _navigateToContent(quiz.title, 'quiz', false);
+          // Trouver le premier item non complété
+          for (var module in _modules) {
+            final quizzes =
+                List<Map<String, dynamic>>.from(module['quizzes'] ?? []);
+            final tps = List<Map<String, dynamic>>.from(module['tps'] ?? []);
+
+            for (var quiz in quizzes) {
+              if (!quiz['completed']) {
+                _navigateToContent(quiz['id'], 'quiz', false, module['name']);
                 return;
               }
             }
-            for (var tp in module.tps) {
-              if (!tp.isCompleted) {
-                _navigateToContent(tp.title, 'tp', false);
+
+            for (var tp in tps) {
+              if (!tp['completed']) {
+                _navigateToContent(tp['id'], 'tp', false, module['name']);
                 return;
               }
             }
@@ -310,7 +349,7 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
           ),
         ),
         child: Text(
-          _calculateProgress() == 0 ? 'Commencer' : 'Continuer',
+          _progress == 0 ? 'Commencer' : 'Continuer',
           style: const TextStyle(
             fontSize: 16,
             fontWeight: FontWeight.bold,

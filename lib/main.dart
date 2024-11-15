@@ -8,7 +8,6 @@ import 'package:app_school/screens/auth/create_new_password_screen.dart';
 import 'package:app_school/screens/auth/forgot_password_screen.dart';
 import 'package:app_school/screens/auth/login_screen.dart';
 import 'package:app_school/screens/courses/add_course_screen.dart';
-import 'package:app_school/screens/courses/add_quiz_screen.dart';
 import 'package:app_school/screens/courses/courses_screen.dart';
 import 'package:app_school/screens/onboarding/onboarding_screen.dart';
 import 'package:app_school/screens/profile/profile_screen.dart';
@@ -120,24 +119,31 @@ class MyApp extends StatelessWidget {
           '/student/profile': (context) => const StudentProfileScreen(),
           '/student/edit-profile': (context) =>
               const EditStudentProfileScreen(),
-          '/student/course-detail': (context) => StudentCourseDetailScreen(
-                courseTitle:
-                    ModalRoute.of(context)!.settings.arguments as String,
-              ),
+          '/student/course-detail': (context) {
+            final args = ModalRoute.of(context)!.settings.arguments
+                as Map<String, dynamic>;
+            return StudentCourseDetailScreen(
+              courseId: args['courseId'],
+              courseTitle: args['courseTitle'],
+            );
+          },
           '/student/quiz': (context) {
             final args = ModalRoute.of(context)!.settings.arguments
                 as Map<String, dynamic>;
             return StudentQuizScreen(
-              moduleTitle: args['title']!,
-              courseTitle: args['courseTitle']!,
+              quizId: args['quizId'],
+              moduleId: args['moduleId'],
+              moduleTitle: args['moduleTitle'],
+              courseTitle: args['courseTitle'],
             );
           },
           '/student/tp': (context) {
             final args = ModalRoute.of(context)!.settings.arguments
                 as Map<String, dynamic>;
             return StudentTPScreen(
-              moduleTitle: args['title']!,
-              courseTitle: args['courseTitle']!,
+              tpId: args['tpId'],
+              moduleTitle: args['moduleTitle'],
+              courseTitle: args['courseTitle'],
             );
           },
         },

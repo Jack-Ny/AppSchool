@@ -1,9 +1,34 @@
-import 'package:app_school/screens/courses/add_quiz_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/course.dart';
 import '../../models/module.dart';
 import '../../models/quiz.dart';
 import '../../models/tp.dart';
+import '../../models/answer.dart';
+import '../../models/question.dart';
+import '../../services/course_service.dart';
+
+class ModuleFormData {
+  final TextEditingController nameController;
+  final List<Quiz> quizzes;
+  final List<TP> tps;
+
+  ModuleFormData({
+    required this.nameController,
+    required this.quizzes,
+    required this.tps,
+  });
+}
+
+class QuestionFormData {
+  final TextEditingController questionController;
+  final List<Answer> answers;
+
+  QuestionFormData({
+    required this.questionController,
+    required this.answers,
+  });
+}
 
 class AddCourseScreen extends StatefulWidget {
   const AddCourseScreen({Key? key}) : super(key: key);
@@ -14,7 +39,73 @@ class AddCourseScreen extends StatefulWidget {
 
 class _AddCourseScreenState extends State<AddCourseScreen> {
   final _courseNameController = TextEditingController();
+  final _categoryController = TextEditingController();
+  final _courseService = CourseService();
   final List<ModuleFormData> _modules = [];
+  bool _isLoading = false;
+
+  void _removeQuiz(ModuleFormData moduleData, Quiz quiz) {
+    setState(() {
+      moduleData.quizzes.remove(quiz);
+    });
+  }
+
+  void _removeTP(ModuleFormData moduleData, TP tp) {
+    setState(() {
+      moduleData.tps.remove(tp);
+    });
+  }
+
+  Future<void> _saveCourse() async {
+    if (_courseNameController.text.isEmpty ||
+        _categoryController.text.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Veuillez remplir tous les champs')),
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+
+      final userId = Supabase.instance.client.auth.currentUser?.id;
+      if (userId == null) throw Exception('Utilisateur non connecté');
+
+      final modules = _modules
+          .map((moduleData) => Module(
+                name: moduleData.nameController.text,
+                quizzes: moduleData.quizzes,
+                tps: moduleData.tps,
+              ))
+          .toList();
+
+      await _courseService.createCourseWithModules(
+        name: _courseNameController.text,
+        category: _categoryController.text,
+        modules: modules,
+        userId: userId,
+      );
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cours créé avec succès'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Erreur: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -29,26 +120,37 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _buildCourseNameField(),
-            const SizedBox(height: 20),
-            ..._modules.map((module) => _buildModuleCard(module)),
-            _buildAddModuleButton(),
-            const SizedBox(height: 40),
-            _buildSaveButton(),
-          ],
-        ),
+      body: Stack(
+        children: [
+          SingleChildScrollView(
+            padding: const EdgeInsets.all(20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                _buildCourseInfo(),
+                const SizedBox(height: 20),
+                ..._modules.map((module) => _buildModuleCard(module)),
+                _buildAddModuleButton(),
+                const SizedBox(height: 40),
+                _buildSaveButton(),
+              ],
+            ),
+          ),
+          if (_isLoading)
+            Container(
+              color: Colors.black.withOpacity(0.5),
+              child: const Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+        ],
       ),
     );
   }
 
-  Widget _buildCourseNameField() {
+  Widget _buildCourseInfo() {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
@@ -60,13 +162,26 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           ),
         ],
       ),
-      child: TextField(
-        controller: _courseNameController,
-        decoration: const InputDecoration(
-          hintText: 'Nom du cours',
-          border: InputBorder.none,
-          hintStyle: TextStyle(color: Colors.grey),
-        ),
+      child: Column(
+        children: [
+          TextField(
+            controller: _courseNameController,
+            decoration: const InputDecoration(
+              hintText: 'Nom du cours',
+              border: InputBorder.none,
+              hintStyle: TextStyle(color: Colors.grey),
+            ),
+          ),
+          const Divider(),
+          TextField(
+            controller: _categoryController,
+            decoration: const InputDecoration(
+              hintText: 'Catégorie',
+              border: InputBorder.none,
+              hintStyle: TextStyle(color: Colors.grey),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -177,7 +292,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   Widget _buildSaveButton() {
     return ElevatedButton(
-      onPressed: _saveCourse,
+      onPressed: _isLoading ? null : _saveCourse,
       child: const Text('Enregistrez'),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
@@ -200,72 +315,261 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   }
 
   void _showQuizDialog(ModuleFormData moduleData) {
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final List<QuestionFormData> questions = [];
+
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
       ),
-      builder: (context) => QuizCreationDialog(
-        onQuizCreated: (quiz) {
-          setState(() {
-            moduleData.quizzes.add(quiz);
-          });
-          Navigator.pop(context);
-        },
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => Container(
+          padding: EdgeInsets.only(
+            bottom: MediaQuery.of(context).viewInsets.bottom,
+            left: 20,
+            right: 20,
+            top: 20,
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                TextField(
+                  controller: titleController,
+                  decoration: const InputDecoration(
+                    labelText: 'Titre du quiz',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: descriptionController,
+                  maxLines: 3,
+                  decoration: const InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                ...questions
+                    .map((question) => _buildQuestionCard(question, setState)),
+                ElevatedButton.icon(
+                  onPressed: () {
+                    setState(() {
+                      questions.add(QuestionFormData(
+                        questionController: TextEditingController(),
+                        answers: [],
+                      ));
+                    });
+                  },
+                  icon: const Icon(Icons.add),
+                  label: const Text('Ajouter une question'),
+                ),
+                const SizedBox(height: 16),
+                ElevatedButton(
+                  onPressed: () {
+                    if (titleController.text.isEmpty || questions.isEmpty) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content: Text('Veuillez remplir tous les champs')),
+                      );
+                      return;
+                    }
+
+                    final quiz = Quiz(
+                      title: titleController.text,
+                      description: descriptionController.text,
+                      questions: questions
+                          .map((q) => Question(
+                                text: q.questionController.text,
+                                answers: q.answers,
+                              ))
+                          .toList(),
+                    );
+
+                    moduleData.quizzes.add(quiz);
+                    Navigator.pop(context);
+                  },
+                  child: const Text('Enregistrer le quiz'),
+                ),
+              ],
+            ),
+          ),
+        ),
       ),
     );
   }
 
   void _showTPDialog(ModuleFormData moduleData) {
-    // Implement TP creation dialog
-  }
+    final titleController = TextEditingController();
+    final descriptionController = TextEditingController();
+    final deadlineController = TextEditingController();
 
-  void _removeQuiz(ModuleFormData moduleData, Quiz quiz) {
-    setState(() {
-      moduleData.quizzes.remove(quiz);
-    });
-  }
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.only(
+          bottom: MediaQuery.of(context).viewInsets.bottom,
+          left: 20,
+          right: 20,
+          top: 20,
+        ),
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              TextField(
+                controller: titleController,
+                decoration: const InputDecoration(
+                  labelText: 'Titre du TP',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: descriptionController,
+                maxLines: 3,
+                decoration: const InputDecoration(
+                  labelText: 'Description',
+                  border: OutlineInputBorder(),
+                ),
+              ),
+              const SizedBox(height: 16),
+              TextField(
+                controller: deadlineController,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Date limite',
+                  border: OutlineInputBorder(),
+                  suffixIcon: Icon(Icons.calendar_today),
+                ),
+                onTap: () async {
+                  final date = await showDatePicker(
+                    context: context,
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.now(),
+                    lastDate: DateTime.now().add(const Duration(days: 365)),
+                  );
+                  if (date != null) {
+                    deadlineController.text = date.toString().split(' ')[0];
+                  }
+                },
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: () {
+                  if (titleController.text.isEmpty ||
+                      deadlineController.text.isEmpty) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                          content: Text('Veuillez remplir tous les champs')),
+                    );
+                    return;
+                  }
 
-  void _removeTP(ModuleFormData moduleData, TP tp) {
-    setState(() {
-      moduleData.tps.remove(tp);
-    });
-  }
-
-  void _saveCourse() {
-    if (_courseNameController.text.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez saisir le nom du cours')),
-      );
-      return;
-    }
-
-    final course = Course(
-      name: _courseNameController.text,
-      modules: _modules
-          .map((moduleData) => Module(
-                name: moduleData.nameController.text,
-                quizzes: moduleData.quizzes,
-                tps: moduleData.tps,
-              ))
-          .toList(),
+                  final tp = TP(
+                    title: titleController.text,
+                    description: descriptionController.text,
+                    deadline: DateTime.parse(deadlineController.text),
+                  );
+                  moduleData.tps.add(tp);
+                  Navigator.pop(context);
+                },
+                child: const Text('Enregistrer le TP'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-
-    // TODO: Save course to database or state management
-    Navigator.pop(context);
   }
-}
 
-// Helper class for form data
-class ModuleFormData {
-  final TextEditingController nameController;
-  final List<Quiz> quizzes;
-  final List<TP> tps;
-
-  ModuleFormData({
-    required this.nameController,
-    required this.quizzes,
-    required this.tps,
-  });
+  Widget _buildQuestionCard(QuestionFormData question, StateSetter setState) {
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            TextField(
+              controller: question.questionController,
+              decoration: const InputDecoration(
+                labelText: 'Question',
+                border: OutlineInputBorder(),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ...question.answers.asMap().entries.map((entry) => Row(
+                  children: [
+                    Checkbox(
+                      value: entry.value.isCorrect,
+                      onChanged: (value) {
+                        setState(() {
+                          question.answers[entry.key] = Answer(
+                            text: entry.value.text,
+                            isCorrect: value ?? false,
+                          );
+                        });
+                      },
+                    ),
+                    Expanded(
+                      child: TextField(
+                        controller:
+                            TextEditingController(text: entry.value.text),
+                        onChanged: (value) {
+                          setState(() {
+                            question.answers[entry.key] = Answer(
+                              text: value,
+                              isCorrect: entry.value.isCorrect,
+                            );
+                          });
+                        },
+                        decoration: InputDecoration(
+                          labelText: 'Réponse ${entry.key + 1}',
+                          border: const OutlineInputBorder(),
+                        ),
+                      ),
+                    ),
+                    IconButton(
+                      icon: const Icon(Icons.delete),
+                      onPressed: () {
+                        setState(() {
+                          question.answers.removeAt(entry.key);
+                        });
+                      },
+                    ),
+                  ],
+                )),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  question.answers.add(Answer(text: '', isCorrect: false));
+                });
+              },
+              child: const Text('Ajouter une réponse'),
+            ),
+            TextButton(
+              onPressed: () {
+                setState(() {
+                  question.answers.clear();
+                });
+              },
+              child: const Text('Supprimer toutes les réponses'),
+              style: TextButton.styleFrom(foregroundColor: Colors.red),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }

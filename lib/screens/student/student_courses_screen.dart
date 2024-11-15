@@ -1,37 +1,66 @@
 import 'package:app_school/screens/student/student_course_detail_screen.dart';
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/colors.dart';
 
 class StudentCoursesScreen extends StatefulWidget {
-  const StudentCoursesScreen({Key? key}) : super(key: key);
+  final String courseId;
+  final String courseTitle;
+
+  const StudentCoursesScreen({
+    Key? key,
+    required this.courseId,
+    required this.courseTitle,
+  }) : super(key: key);
 
   @override
   State<StudentCoursesScreen> createState() => _StudentCoursesScreenState();
 }
 
 class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
+  final _supabase = Supabase.instance.client;
   int _selectedIndex = 1; // Pour la bottom navigation bar
+  List<Map<String, dynamic>> _courses = [];
+  bool _isLoading = true;
 
-  final List<Map<String, dynamic>> _courses = [
-    {
-      'title': 'Graphic Design Advanced',
-      'category': 'Codage informatique',
-      'students': 12,
-      'rating': 4.2,
-      'status': 'En cours',
-      'image': 'assets/images/course1.jpg',
-      'isStarted': true,
-    },
-    {
-      'title': 'Graphic Design Advanced',
-      'category': 'Codage informatique',
-      'students': 12,
-      'rating': 4.2,
-      'status': 'Non commencer',
-      'image': 'assets/images/course2.jpg',
-      'isStarted': false,
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadCourses();
+  }
+
+  Future<void> _loadCourses() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+
+      // Récupérer les cours inscrits pour l'étudiant
+      final coursesData = await _supabase.from('course_enrollments').select('''
+         course:courses (
+           id,
+           name,
+           category,
+           modules:modules (
+             id, 
+             name,
+             quizzes:quizzes(*),
+             tps:tps(*)
+           )
+         )
+       ''').eq('student_id', userId);
+
+      setState(() {
+        _courses = coursesData
+            .map((e) => e['course'] as Map<String, dynamic>)
+            .toList();
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(SnackBar(content: Text('Erreur: $e')));
+      }
+    }
+  }
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -120,6 +149,8 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
             MaterialPageRoute(
               builder: (context) => StudentCourseDetailScreen(
                 courseTitle: course['title'],
+                tpId: '',
+                courseId: '',
               ),
             ),
           );

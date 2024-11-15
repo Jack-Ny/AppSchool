@@ -1,14 +1,21 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../constants/colors.dart';
 import '../../../models/quiz.dart';
+import '../../../models/question.dart';
+import '../../../models/answer.dart';
 import 'quiz_result_screen.dart';
 
 class StudentQuizScreen extends StatefulWidget {
+  final String moduleId;
+  final String quizId;
   final String moduleTitle;
   final String courseTitle;
 
   const StudentQuizScreen({
     Key? key,
+    required this.moduleId,
+    required this.quizId,
     required this.moduleTitle,
     required this.courseTitle,
   }) : super(key: key);
@@ -18,61 +25,55 @@ class StudentQuizScreen extends StatefulWidget {
 }
 
 class _StudentQuizScreenState extends State<StudentQuizScreen> {
+  final _supabase = Supabase.instance.client;
   late Quiz quiz;
+  bool _isLoading = true;
   int _currentQuestionIndex = 0;
   final List<String?> _userAnswers = [];
 
   @override
   void initState() {
     super.initState();
-    _initQuiz();
+    _loadQuizData();
   }
 
-  void _initQuiz() {
-    quiz = Quiz(
-      title: widget.moduleTitle,
-      questions: [
-        Question(
-          questionText: "Qu'est ce qu'une fonction récursive ?",
-          type: QuestionType.selection,
-          answer: "Une fonction qui s'appelle elle meme",
-          points: 1,
-          choices: [
-            "Une fonction qui s'appelle elle meme",
-            "Une fonction qui s'auto-incrémente",
-            "Une fonction qui retourne une valeur nulle",
-            "Une fonction qui retourne NaN"
-          ],
-        ),
-        Question(
-          questionText: "Qu'est ce qu'une fonction récursive ?",
-          type: QuestionType.selection,
-          answer: "Une fonction qui s'appelle elle meme",
-          points: 1,
-          choices: [
-            "Une fonction qui s'appelle elle meme",
-            "Une fonction qui s'auto-incrémente",
-            "Une fonction qui retourne une valeur nulle",
-            "Une fonction qui retourne NaN"
-          ],
-        ),
-        Question(
-          questionText: "Qu'est ce qu'une fonction récursive ?",
-          type: QuestionType.selection,
-          answer: "Une fonction qui s'appelle elle meme",
-          points: 1,
-          choices: [
-            "Une fonction qui s'appelle elle meme",
-            "Une fonction qui s'auto-incrémente",
-            "Une fonction qui retourne une valeur nulle",
-            "Une fonction qui retourne NaN"
-          ],
-        ),
-      ],
-      timeLimit: 30,
-      timeUnit: 'minutes',
-    );
-    _userAnswers.addAll(List.filled(quiz.questions.length, null));
+  Future<void> _loadQuizData() async {
+    try {
+      final quizData = await _supabase.from('quizzes').select('''
+           *,
+           questions:questions(
+             *,
+             answers:answers(*)
+           )
+         ''').eq('id', widget.quizId).single();
+
+      setState(() {
+        quiz = Quiz(
+          title: quizData['title'],
+          description: quizData['description'],
+          questions: (quizData['questions'] as List)
+              .map((q) => Question(
+                    id: q['id'],
+                    text: q['text'],
+                    answers: (q['answers'] as List)
+                        .map((a) => Answer(
+                              text: a['text'],
+                              isCorrect: a['is_correct'],
+                            ))
+                        .toList(),
+                  ))
+              .toList(),
+        );
+        _userAnswers.addAll(List.filled(quiz.questions.length, null));
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors du chargement du quiz: $e')),
+        );
+      }
+    }
   }
 
   void _handleSelection(String answer) {
@@ -116,9 +117,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               ),
               ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(true),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                ),
+                style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
                 child: const Text('Oui, quitter'),
               ),
             ],
@@ -127,26 +126,67 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         false;
   }
 
-  void _showResults() {
-    int score = 0;
-    for (var i = 0; i < quiz.questions.length; i++) {
-      if (_userAnswers[i] == quiz.questions[i].answer) {
-        score += quiz.questions[i].points;
+  Future<void> _saveQuizAttempt() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Utilisateur non connecté');
+
+      final attemptResponse = await _supabase
+          .from('quiz_attempts')
+          .insert({
+            'quiz_id': widget.quizId,
+            'student_id': userId,
+            'score': _calculateScore(),
+          })
+          .select()
+          .single();
+
+      for (var i = 0; i < _userAnswers.length; i++) {
+        if (_userAnswers[i] != null) {
+          await _supabase.from('question_responses').insert({
+            'attempt_id': attemptResponse['id'],
+            'question_id': quiz.questions[i].id,
+            'answer_text': _userAnswers[i],
+          });
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Erreur lors de la sauvegarde: $e')),
+        );
       }
     }
+  }
 
-    quiz.isCompleted = true;
+  int _calculateScore() {
+    int score = 0;
+    for (var i = 0; i < quiz.questions.length; i++) {
+      if (_userAnswers[i] != null) {
+        final correctAnswer =
+            quiz.questions[i].answers.firstWhere((answer) => answer.isCorrect);
+        if (_userAnswers[i] == correctAnswer.text) {
+          score++;
+        }
+      }
+    }
+    return score;
+  }
 
+  void _showResults() async {
+    await _saveQuizAttempt();
+    if (!mounted) return;
+
+    final score = _calculateScore();
     Navigator.pushReplacement(
       context,
       MaterialPageRoute(
         builder: (context) => QuizResultScreen(
           score: score,
           totalQuestions: quiz.questions.length,
-          userName: "Ouédraogo Zakaria",
-          onReturnPressed: () {
-            Navigator.pop(context);
-          },
+          userName: _supabase.auth.currentUser?.userMetadata?['name'] ??
+              "Utilisateur",
+          onReturnPressed: () => Navigator.pop(context),
         ),
       ),
     );
@@ -154,6 +194,12 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
 
   @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return const Scaffold(
+        body: Center(child: CircularProgressIndicator()),
+      );
+    }
+
     final currentQuestion = quiz.questions[_currentQuestionIndex];
 
     return WillPopScope(
@@ -216,14 +262,14 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
             ),
             const SizedBox(height: 20),
             Text(
-              question.questionText,
+              question.text,
               style: const TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
             ),
             const SizedBox(height: 20),
-            if (question.choices != null) _buildAnswerOptions(question),
+            _buildAnswerOptions(question),
           ],
         ),
       ),
@@ -232,12 +278,12 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
 
   Widget _buildAnswerOptions(Question question) {
     return Column(
-      children: question.choices!.map((option) {
-        final isSelected = _userAnswers[_currentQuestionIndex] == option;
+      children: question.answers.map((answer) {
+        final isSelected = _userAnswers[_currentQuestionIndex] == answer.text;
         return Padding(
           padding: const EdgeInsets.only(bottom: 10),
           child: ElevatedButton(
-            onPressed: () => _handleSelection(option),
+            onPressed: () => _handleSelection(answer.text),
             style: ElevatedButton.styleFrom(
               backgroundColor:
                   isSelected ? AppColors.primaryBlue : Colors.white,
@@ -257,7 +303,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
               minimumSize: const Size(double.infinity, 50),
             ),
             child: Text(
-              option,
+              answer.text,
               style: TextStyle(
                 fontSize: 16,
                 color: isSelected ? Colors.white : Colors.black87,
