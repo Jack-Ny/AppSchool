@@ -72,8 +72,8 @@ class _UsersScreenState extends State<UsersScreen> {
   void _showAddUserModal(BuildContext context) {
     final fullNameController = TextEditingController();
     final emailController = TextEditingController();
-    String selectedUserType = 'student';
-    String? selectedStudentId;
+    String? selectedUserType;
+    List<String> selectedStudentIds = [];
 
     showDialog(
       context: context,
@@ -139,6 +139,7 @@ class _UsersScreenState extends State<UsersScreen> {
                           child: DropdownButton<String>(
                             value: selectedUserType,
                             isExpanded: true,
+                            hint: const Text('-- Sélectionner le type d\'utilisateur --'),
                             items: const [
                               DropdownMenuItem(
                                 value: 'student',
@@ -159,9 +160,8 @@ class _UsersScreenState extends State<UsersScreen> {
                             ],
                             onChanged: (value) {
                               setModalState(() {
-                                selectedUserType = value!;
-                                selectedStudentId =
-                                    null; // Réinitialiser la sélection d'étudiant
+                                selectedUserType = value;
+                                selectedStudentIds.clear();
                               });
                             },
                           ),
@@ -186,32 +186,76 @@ class _UsersScreenState extends State<UsersScreen> {
                       const SizedBox(height: 15),
 
                       // Sélecteur d'étudiant pour les parents
-                      if (selectedUserType == 'parent' && _students.isNotEmpty)
-                        Container(
-                          padding: const EdgeInsets.symmetric(horizontal: 12),
-                          decoration: BoxDecoration(
-                            color: Colors.grey[100],
-                            borderRadius: BorderRadius.circular(10),
-                          ),
-                          child: DropdownButtonHideUnderline(
-                            child: DropdownButton<String>(
-                              value: selectedStudentId,
-                              isExpanded: true,
-                              hint: const Text('Sélectionner un élève'),
-                              items: _students.map((student) {
-                                return DropdownMenuItem(
-                                  value: student['id'].toString(),
-                                  child: Text(student['users']['name']),
-                                );
-                              }).toList(),
-                              onChanged: (value) {
-                                setModalState(() {
-                                  selectedStudentId = value;
-                                });
-                              },
-                            ),
-                          ),
-                        ),
+                      if (selectedUserType == 'parent')
+  Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      const SizedBox(height: 15),
+      const Text(
+        'Sélectionner le(s) élève(s)',
+        style: TextStyle(
+          fontWeight: FontWeight.bold,
+          fontSize: 14,
+        ),
+      ),
+      const SizedBox(height: 8),
+      if (_students.isEmpty)
+        const Text(
+          'Aucun élève disponible',
+          style: TextStyle(
+            color: Colors.grey,
+            fontStyle: FontStyle.italic,
+          ),
+        )
+      else
+        Container(
+          constraints: BoxConstraints(
+            maxHeight: MediaQuery.of(context).size.height * 0.2,
+          ),
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.grey[100],
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: Colors.grey[300]!),
+          ),
+          child: SingleChildScrollView(
+            child: Column(
+              children: _students.map((student) {
+                bool isSelected = selectedStudentIds.contains(student['id'].toString());
+                return CheckboxListTile(
+                  title: Text(student['name'] ?? ''),
+                  subtitle: Text(student['email'] ?? ''),
+                  value: isSelected,
+                  onChanged: (bool? value) {
+                    setModalState(() {
+                      if (value == true) {
+                        selectedStudentIds.add(student['id'].toString());
+                      } else {
+                        selectedStudentIds.remove(student['id'].toString());
+                      }
+                    });
+                  },
+                  controlAffinity: ListTileControlAffinity.leading,
+                  dense: true,
+                );
+              }).toList(),
+            ),
+          ),
+        ),
+      if (selectedStudentIds.isNotEmpty)
+        Padding(
+          padding: const EdgeInsets.only(top: 8),
+          child: Text(
+            '${selectedStudentIds.length} élève(s) sélectionné(s)',
+            style: TextStyle(
+              color: Colors.green[700],
+              fontSize: 12,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+    ],
+  ),
 
                       const SizedBox(height: 25),
 
@@ -220,59 +264,63 @@ class _UsersScreenState extends State<UsersScreen> {
                         width: double.infinity,
                         child: ElevatedButton(
                           onPressed: () async {
-                            // Validation
-                            if (fullNameController.text.isEmpty ||
-                                emailController.text.isEmpty) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content:
-                                      Text('Veuillez remplir tous les champs'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
+  // Validation
+  if (fullNameController.text.isEmpty || emailController.text.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Veuillez remplir tous les champs'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
 
-                            if (selectedUserType == 'parent' &&
-                                selectedStudentId == null) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content:
-                                      Text('Veuillez sélectionner un élève'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                              return;
-                            }
+  if (selectedUserType == null) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Veuillez sélectionner un type d\'utilisateur'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
 
-                            try {
-                              await _userService.createUser(
-                                email: emailController.text.trim(),
-                                name: fullNameController.text.trim(),
-                                userType: selectedUserType,
-                                studentId: selectedStudentId,
-                              );
+  if (selectedUserType == 'parent' && selectedStudentIds.isEmpty) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Veuillez sélectionner au moins un élève'),
+        backgroundColor: Colors.red,
+      ),
+    );
+    return;
+  }
 
-                              if (!mounted) return;
+  try {
+    await _userService.createUser(
+      email: emailController.text.trim(),
+      name: fullNameController.text.trim(),
+      userType: selectedUserType!,
+      studentIds: selectedUserType == 'parent' ? selectedStudentIds : null,
+    );
 
-                              Navigator.pop(context);
-                              _loadUsers(); // Recharger la liste
-
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                const SnackBar(
-                                  content: Text('Utilisateur créé avec succès'),
-                                  backgroundColor: Colors.green,
-                                ),
-                              );
-                            } catch (e) {
-                              ScaffoldMessenger.of(context).showSnackBar(
-                                SnackBar(
-                                  content: Text('Erreur: $e'),
-                                  backgroundColor: Colors.red,
-                                ),
-                              );
-                            }
-                          },
+    if (!mounted) return;
+    Navigator.pop(context);
+    _loadUsers();
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text('Utilisateur créé avec succès'),
+        backgroundColor: Colors.green,
+      ),
+    );
+  } catch (e) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text('Erreur: $e'),
+        backgroundColor: Colors.red,
+      ),
+    );
+  }
+},
                           style: ElevatedButton.styleFrom(
                             backgroundColor: AppColors.primaryBlue,
                             shape: RoundedRectangleBorder(
