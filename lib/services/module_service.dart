@@ -32,18 +32,22 @@ class ModuleService {
 
       // Créer les quiz associés
       for (var quiz in quizzes) {
-        final quizResponse = await _supabase.from('quizzes').insert({
-          'module_id': moduleId,
-          'title': quiz.title,
-          'time_limit': quiz.timeLimit,
-          'time_unit': quiz.timeUnit,
-          'passing_score': quiz.passingScore,
-        }).select().single();
+        final quizResponse = await _supabase
+            .from('quizzes')
+            .insert({
+              'module_id': moduleId,
+              'title': quiz.title,
+              'time_limit': quiz.timeLimit,
+              'time_unit': quiz.timeUnit,
+              'passing_score': quiz.passingScore,
+            })
+            .select()
+            .single();
 
         final quizId = quizResponse['id'];
 
         // Créer les questions pour chaque quiz
-        for (var question in quiz.questions) {
+        /* for (var question in quiz.questions) {
           await _supabase.from('questions').insert({
             'quiz_id': quizId,
             'question_text': question.questionText,
@@ -52,7 +56,7 @@ class ModuleService {
             'points': question.points,
             'choices': question.choices,
           });
-        }
+        } */
       }
 
       // Créer les TPs associés
@@ -74,15 +78,11 @@ class ModuleService {
 
   Future<List<Module>> getModulesByCourse(String courseId) async {
     try {
-      final response = await _supabase
-          .from('modules')
-          .select('''
+      final response = await _supabase.from('modules').select('''
             *,
             quizzes(*),
             tps(*)
-          ''')
-          .eq('course_id', courseId)
-          .order('order_index');
+          ''').eq('course_id', courseId).order('order_index');
 
       return List<Module>.from(
           response.map((module) => Module.fromJson(module)));
@@ -93,10 +93,7 @@ class ModuleService {
 
   Future<void> deleteModule(String moduleId) async {
     try {
-      await _supabase
-          .from('modules')
-          .delete()
-          .eq('id', moduleId);
+      await _supabase.from('modules').delete().eq('id', moduleId);
     } catch (e) {
       throw Exception('Erreur lors de la suppresion des modules : $e');
     }

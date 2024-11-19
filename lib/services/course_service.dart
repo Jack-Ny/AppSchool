@@ -1,9 +1,12 @@
 import 'package:app_school/models/module.dart';
+import 'package:app_school/services/auth_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'module_service.dart';
+import '../config/supabase_config.dart';
 
 class CourseService {
-  final _supabase = Supabase.instance.client;
+  final _supabase = SupabaseConfig.client;
+  final AuthService _authService = AuthService();
   late final ModuleService _moduleService;
 
   // Récupérer tous les cours
@@ -50,10 +53,11 @@ class CourseService {
     required String name,
     required String category,
     required List<Module> modules,
+    required String userId,
     //required String userId,
   }) async {
     try {
-      final userId = _supabase.getCurrentUserId();
+      final userId = _authService.getCurrentUserId();
       if (userId == null) throw Exception('Utilisateur non connecté');
 
       final courseResponse = await _supabase
@@ -70,10 +74,10 @@ class CourseService {
       final courseId = courseResponse['id'];
 
       // creer l'association
-        await _supabase.from('teacher_courses').insert({
-          'teacher_id': userId,
-          'course_id': courseId,
-        });
+      await _supabase.from('teacher_courses').insert({
+        'teacher_id': userId,
+        'course_id': courseId,
+      });
 
       for (var module in modules) {
         final moduleResponse = await _supabase
@@ -100,7 +104,7 @@ class CourseService {
 
           final quizId = quizResponse['id'];
 
-          for (var question in quiz.questions) {
+          for (var question in quiz.description) {
             final questionResponse = await _supabase
                 .from('questions')
                 .insert({

@@ -17,6 +17,7 @@ class TP {
     this.maxPoints,
     this.isActive = true,
     required this.createdAt,
+    required DateTime deadline,
   });
 
   factory TP.fromJson(Map<String, dynamic> json) {
@@ -25,10 +26,12 @@ class TP {
       moduleId: json['module_id'],
       title: json['title'],
       description: json['description'],
-      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      dueDate:
+          json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
       maxPoints: json['max_points'],
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
+      deadline: DateTime.parse(json['deadline']),
     );
   }
 

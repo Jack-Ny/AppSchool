@@ -1,3 +1,5 @@
+import 'package:app_school/models/quiz.dart';
+import 'package:app_school/models/tp.dart';
 
 class Module {
   final String? id;
@@ -34,7 +36,9 @@ class Module {
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      quizzes: (json['quizzes'] as List?)?.map((q) => Quiz.fromJson(q)).toList() ?? [],
+      quizzes:
+          (json['quizzes'] as List?)?.map((q) => Quiz.fromJson(q)).toList() ??
+              [],
       tps: (json['tps'] as List?)?.map((t) => TP.fromJson(t)).toList() ?? [],
     );
   }

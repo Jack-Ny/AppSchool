@@ -25,7 +25,21 @@ class StudentQuizScreen extends StatefulWidget {
 }
 
 class _StudentQuizScreenState extends State<StudentQuizScreen> {
-  final _supabase = Supabase.instance.client;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Student Quiz Screen'),
+      ),
+      body: Center(
+        child: Text('Quiz Screen Content'),
+      ),
+    );
+  }
+}
+
+/* class _StudentQuizScreenState extends State<StudentQuizScreen> {
+  /* final _supabase = Supabase.instance.client;
   late Quiz quiz;
   bool _isLoading = true;
   int _currentQuestionIndex = 0;
@@ -62,7 +76,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
                             ))
                         .toList(),
                   ))
-              .toList(),
+              .toList(), moduleId: '', timeLimit: null,
         );
         _userAnswers.addAll(List.filled(quiz.questions.length, null));
         _isLoading = false;
@@ -164,7 +178,7 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
     for (var i = 0; i < quiz.questions.length; i++) {
       if (_userAnswers[i] != null) {
         final correctAnswer =
-            quiz.questions[i].answers.firstWhere((answer) => answer.isCorrect);
+            quiz.questions?[i].answer.firstWhere((answer) => answer.isCorrect);
         if (_userAnswers[i] == correctAnswer.text) {
           score++;
         }
@@ -363,5 +377,5 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
         ],
       ),
     );
-  }
-}
+  } */
+} */

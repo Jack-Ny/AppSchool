@@ -17,6 +17,7 @@ class Question {
     this.points = 1,
     this.choices,
     required this.createdAt,
+    required String text,
   });
 
   factory Question.fromJson(Map<String, dynamic> json) {
@@ -31,6 +32,7 @@ class Question {
           ? List<Map<String, dynamic>>.from(json['choices'])
           : null,
       createdAt: DateTime.parse(json['created_at']),
+      text: '',
     );
   }
 

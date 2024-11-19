@@ -76,6 +76,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                 name: moduleData.nameController.text,
                 quizzes: moduleData.quizzes,
                 tps: moduleData.tps,
+                courseId: '',
+                createdAt: DateTime.now(),
+                updatedAt: DateTime.now(),
               ))
           .toList();
 
@@ -385,10 +388,18 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                       description: descriptionController.text,
                       questions: questions
                           .map((q) => Question(
-                                text: q.questionController.text,
-                                answers: q.answers,
+                                quizId: '',
+                                questionText: '',
+                                questionType: '',
+                                answer: '',
+                                createdAt: DateTime.now(),
+                                text: '',
                               ))
                           .toList(),
+                      moduleId: '',
+                      timeLimit: 0,
+                      timeUnit: '',
+                      createdAt: DateTime.now(),
                     );
 
                     moduleData.quizzes.add(quiz);
@@ -480,6 +491,8 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     title: titleController.text,
                     description: descriptionController.text,
                     deadline: DateTime.parse(deadlineController.text),
+                    moduleId: '',
+                    createdAt: DateTime.now(),
                   );
                   moduleData.tps.add(tp);
                   Navigator.pop(context);

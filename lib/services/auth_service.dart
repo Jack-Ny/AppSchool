@@ -14,6 +14,21 @@ class AuthException implements Exception {
 class AuthService {
   final _supabase = SupabaseConfig.client;
 
+  // Récupérer l'utilisateur actuellement connecté
+  String? getCurrentUserId() {
+    return _supabase.auth.currentUser?.id;
+  }
+
+  // Récupérer l'utilisateur actuel complet
+  //User? getCurrentUser() {
+  //return _supabase.auth.currentUser;
+  //}
+
+  // Vérifier si un utilisateur est connecté
+  bool isLoggedIn() {
+    return _supabase.auth.currentUser != null;
+  }
+
   // Inscription
   Future<AppUser> register({
     required String email,
