@@ -1,11 +1,46 @@
 class TP {
+  final String? id;
+  final String moduleId;
   final String title;
   final String description;
-  final DateTime deadline;
+  final DateTime? dueDate;
+  final int? maxPoints;
+  final bool isActive;
+  final DateTime createdAt;
 
   TP({
+    this.id,
+    required this.moduleId,
     required this.title,
     required this.description,
-    required this.deadline,
+    this.dueDate,
+    this.maxPoints,
+    this.isActive = true,
+    required this.createdAt,
   });
+
+  factory TP.fromJson(Map<String, dynamic> json) {
+    return TP(
+      id: json['id'],
+      moduleId: json['module_id'],
+      title: json['title'],
+      description: json['description'],
+      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      maxPoints: json['max_points'],
+      isActive: json['is_active'] ?? true,
+      createdAt: DateTime.parse(json['created_at']),
+    );
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      if (id != null) 'id': id,
+      'module_id': moduleId,
+      'title': title,
+      'description': description,
+      if (dueDate != null) 'due_date': dueDate!.toIso8601String(),
+      if (maxPoints != null) 'max_points': maxPoints,
+      'is_active': isActive,
+    };
+  }
 }
