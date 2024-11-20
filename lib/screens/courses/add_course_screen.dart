@@ -385,7 +385,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
                     final quiz = Quiz(
                       title: titleController.text,
-                      description: descriptionController.text,
+                      description: const [],
                       questions: questions
                           .map((q) => Question(
                                 quizId: '',

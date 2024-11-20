@@ -102,31 +102,31 @@ class MyApp extends StatelessWidget {
           '/admin-dashboard': (context) => const AdminDashboard(),
           '/admin/courses': (context) => const CoursesScreen(),
           '/admin/courses/add': (context) => const AddCourseScreen(),
-          '/admin/courses/add/quiz': (context) => QuizCreationDialog(
+          /* '/admin/courses/add/quiz': (context) => QuizCreationDialog(
                 onQuizCreated: (Quiz quiz) {
                   Navigator.pop(context, quiz);
                 },
-              ),
+              ), */
           '/admin/xcode': (context) => const XCodeScreen(),
           '/admin/ranks': (context) => const RanksScreen(),
           '/admin/profile': (context) => const ProfileScreen(),
 
           // Routes Étudiants
           '/student-dashboard': (context) => const StudentDashboard(),
-          '/student/courses': (context) => const StudentCoursesScreen(),
+          /* '/student/courses': (context) => const StudentCoursesScreen(), */
           '/student/xcode': (context) => const StudentXCodeScreen(),
           '/student/ranks': (context) => const StudentRanksScreen(),
           '/student/profile': (context) => const StudentProfileScreen(),
           '/student/edit-profile': (context) =>
               const EditStudentProfileScreen(),
-          '/student/course-detail': (context) {
+          /* '/student/course-detail': (context) {
             final args = ModalRoute.of(context)!.settings.arguments
                 as Map<String, dynamic>;
             return StudentCourseDetailScreen(
               courseId: args['courseId'],
               courseTitle: args['courseTitle'],
             );
-          },
+          }, */
           '/student/quiz': (context) {
             final args = ModalRoute.of(context)!.settings.arguments
                 as Map<String, dynamic>;
@@ -137,7 +137,7 @@ class MyApp extends StatelessWidget {
               courseTitle: args['courseTitle'],
             );
           },
-          '/student/tp': (context) {
+          /* '/student/tp': (context) {
             final args = ModalRoute.of(context)!.settings.arguments
                 as Map<String, dynamic>;
             return StudentTPScreen(
@@ -145,7 +145,7 @@ class MyApp extends StatelessWidget {
               moduleTitle: args['moduleTitle'],
               courseTitle: args['courseTitle'],
             );
-          },
+          }, */
         },
         onUnknownRoute: (settings) {
           return MaterialPageRoute(

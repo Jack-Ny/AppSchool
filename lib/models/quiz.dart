@@ -10,6 +10,7 @@ class Quiz {
   final bool isActive;
   final DateTime createdAt;
   late final List<Question>? questions;
+  final List description;
 
   Quiz(
       {this.id,
@@ -21,7 +22,7 @@ class Quiz {
       this.isActive = true,
       required this.createdAt,
       this.questions,
-      required String description});
+      required this.description});
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
     return Quiz(
@@ -33,7 +34,7 @@ class Quiz {
       passingScore: json['passing_score'] ?? 75,
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
-      description: '',
+      description: json['list'],
     );
   }
 }

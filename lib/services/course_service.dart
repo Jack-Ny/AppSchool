@@ -96,7 +96,6 @@ class CourseService {
               .from('quizzes')
               .insert({
                 'title': quiz.title,
-                'description': quiz.description,
                 'module_id': moduleId,
               })
               .select()

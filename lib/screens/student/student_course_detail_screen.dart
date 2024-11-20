@@ -116,7 +116,6 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
           context,
           MaterialPageRoute(
             builder: (context) => StudentTPScreen(
-              tpId: contentId,
               moduleTitle: moduleTitle,
               courseTitle: widget.courseTitle,
             ),

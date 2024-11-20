@@ -7,6 +7,7 @@ class TP {
   final int? maxPoints;
   final bool isActive;
   final DateTime createdAt;
+  final DateTime deadline;
 
   TP({
     this.id,
@@ -17,7 +18,7 @@ class TP {
     this.maxPoints,
     this.isActive = true,
     required this.createdAt,
-    required DateTime deadline,
+    required this.deadline,
   });
 
   factory TP.fromJson(Map<String, dynamic> json) {
