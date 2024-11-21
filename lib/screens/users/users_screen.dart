@@ -1,3 +1,4 @@
+import 'package:app_school/config/supabase_config.dart';
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/colors.dart';
@@ -13,7 +14,7 @@ class UsersScreen extends StatefulWidget {
 class _UsersScreenState extends State<UsersScreen> {
   final UserService _userService = UserService();
   final _searchController = TextEditingController();
-  final _supabase = Supabase.instance.client;
+  final _supabase = SupabaseConfig.client;
 
   List<Map<String, dynamic>> _users = [];
   List<Map<String, dynamic>> _filteredUsers = [];

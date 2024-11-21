@@ -1,9 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user.dart';
 import 'package:uuid/uuid.dart';
+import '../config/supabase_config.dart';
 
 class UserService {
-  final _supabase = Supabase.instance.client;
+  final _supabase = SupabaseConfig.client;
 
   Future<List<Map<String, dynamic>>> getStudents() async {
     final students = await _supabase.from('users').select('''

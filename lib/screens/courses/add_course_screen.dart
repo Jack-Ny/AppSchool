@@ -1,22 +1,23 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../models/course.dart';
 import '../../models/module.dart';
 import '../../models/quiz.dart';
 import '../../models/tp.dart';
-import '../../models/answer.dart';
 import '../../models/question.dart';
 import '../../services/course_service.dart';
 
 class ModuleFormData {
   final TextEditingController nameController;
+  final TextEditingController? descriptionController;
   final List<Quiz> quizzes;
   final List<TP> tps;
 
   ModuleFormData({
     required this.nameController,
-    required this.quizzes,
-    required this.tps,
+    this.descriptionController,
+    this.quizzes = const [],
+    this.tps = const [],
   });
 }
 
@@ -26,7 +27,17 @@ class QuestionFormData {
 
   QuestionFormData({
     required this.questionController,
-    required this.answers,
+    this.answers = const [],
+  });
+}
+
+class Answer {
+  final String text;
+  bool isCorrect;
+
+  Answer({
+    required this.text,
+    this.isCorrect = false,
   });
 }
 
@@ -39,10 +50,16 @@ class AddCourseScreen extends StatefulWidget {
 
 class _AddCourseScreenState extends State<AddCourseScreen> {
   final _courseNameController = TextEditingController();
-  final _categoryController = TextEditingController();
+  final _courseDescriptionController = TextEditingController();
   final _courseService = CourseService();
   final List<ModuleFormData> _modules = [];
   bool _isLoading = false;
+
+  // Validation des champs avant l'ajout du cours
+  bool get _isFormValid {
+    return _courseNameController.text.isNotEmpty &&
+        _courseDescriptionController.text.isNotEmpty;
+  }
 
   void _removeQuiz(ModuleFormData moduleData, Quiz quiz) {
     setState(() {
@@ -56,9 +73,9 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     });
   }
 
+  // Sauvegarde du cours avec validation
   Future<void> _saveCourse() async {
-    if (_courseNameController.text.isEmpty ||
-        _categoryController.text.isEmpty) {
+    if (!_isFormValid) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Veuillez remplir tous les champs')),
       );
@@ -71,22 +88,23 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       final userId = Supabase.instance.client.auth.currentUser?.id;
       if (userId == null) throw Exception('Utilisateur non connecté');
 
-      final modules = _modules
-          .map((moduleData) => Module(
-                name: moduleData.nameController.text,
-                quizzes: moduleData.quizzes,
-                tps: moduleData.tps,
-                courseId: '',
-                createdAt: DateTime.now(),
-                updatedAt: DateTime.now(),
-              ))
-          .toList();
+      final modulesJson = _modules.map((moduleData) {
+        return Module(
+          name: moduleData.nameController.text,
+          description: moduleData.descriptionController?.text,
+          courseId: '', // CourseId à renseigner lors de la création finale
+          createdAt: DateTime.now(),
+          updatedAt: DateTime.now(),
+          quizzes: moduleData.quizzes,
+          tps: moduleData.tps,
+        ).toJson(); // Sérialisation ici
+      }).toList();
 
       await _courseService.createCourseWithModules(
         name: _courseNameController.text,
-        category: _categoryController.text,
-        modules: modules,
-        userId: userId,
+        description: _courseDescriptionController.text,
+        modules: modulesJson, // On envoie maintenant des Map<String, dynamic>
+        createdBy: '', // Cette partie à remplir si nécessaire
       );
 
       if (!mounted) return;
@@ -118,7 +136,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text('Ajoutez cours'),
+        title: const Text('Ajoutez un cours'),
         elevation: 0,
         backgroundColor: Colors.transparent,
         foregroundColor: Colors.black,
@@ -151,6 +169,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Formulaire de base pour le nom et la catégorie du cours
   Widget _buildCourseInfo() {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -177,7 +196,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
           ),
           const Divider(),
           TextField(
-            controller: _categoryController,
+            controller: _courseDescriptionController,
             decoration: const InputDecoration(
               hintText: 'Catégorie',
               border: InputBorder.none,
@@ -189,6 +208,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Carte de module avec quiz et TP
   Widget _buildModuleCard(ModuleFormData moduleData) {
     return Card(
       margin: const EdgeInsets.only(bottom: 20),
@@ -218,6 +238,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Section des quizzes
   Widget _buildQuizzesSection(ModuleFormData moduleData) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -248,6 +269,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Section des TPs
   Widget _buildTPsSection(ModuleFormData moduleData) {
     return Container(
       padding: const EdgeInsets.all(10),
@@ -278,6 +300,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Ajout d'un module
   Widget _buildAddModuleButton() {
     return ElevatedButton.icon(
       onPressed: _addModule,
@@ -293,10 +316,11 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Bouton d'enregistrement
   Widget _buildSaveButton() {
     return ElevatedButton(
-      onPressed: _isLoading ? null : _saveCourse,
-      child: const Text('Enregistrez'),
+      onPressed: _isLoading || !_isFormValid ? null : _saveCourse,
+      child: const Text('Enregistrer'),
       style: ElevatedButton.styleFrom(
         backgroundColor: Colors.blue,
         padding: const EdgeInsets.symmetric(vertical: 15),
@@ -307,6 +331,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Ajouter un module
   void _addModule() {
     setState(() {
       _modules.add(ModuleFormData(
@@ -317,6 +342,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     });
   }
 
+  // Dialogue pour ajouter un quiz
   void _showQuizDialog(ModuleFormData moduleData) {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -378,19 +404,21 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     if (titleController.text.isEmpty || questions.isEmpty) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
-                            content: Text('Veuillez remplir tous les champs')),
+                          content: Text('Veuillez remplir tous les champs'),
+                        ),
                       );
                       return;
                     }
 
                     final quiz = Quiz(
                       title: titleController.text,
-                      description: const [],
+                      description: [_courseDescriptionController.text],
                       questions: questions
                           .map((q) => Question(
                                 quizId: '',
-                                questionText: '',
-                                questionType: '',
+                                questionText: q.questionController.text,
+                                questionType:
+                                    'text', // Exemple de type de question
                                 answer: '',
                                 createdAt: DateTime.now(),
                                 text: '',
@@ -415,6 +443,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Dialogue pour ajouter un TP
   void _showTPDialog(ModuleFormData moduleData) {
     final titleController = TextEditingController();
     final descriptionController = TextEditingController();
@@ -471,7 +500,8 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
                     lastDate: DateTime.now().add(const Duration(days: 365)),
                   );
                   if (date != null) {
-                    deadlineController.text = date.toString().split(' ')[0];
+                    deadlineController.text =
+                        DateFormat('yyyy-MM-dd').format(date);
                   }
                 },
               ),
@@ -506,6 +536,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     );
   }
 
+  // Carte de question dans un quiz
   Widget _buildQuestionCard(QuestionFormData question, StateSetter setState) {
     return Card(
       margin: const EdgeInsets.only(bottom: 16),

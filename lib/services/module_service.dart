@@ -1,10 +1,11 @@
+import 'package:app_school/config/supabase_config.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/module.dart';
 import '../models/quiz.dart';
 import '../models/tp.dart';
 
 class ModuleService {
-  final _supabase = Supabase.instance.client;
+  final _supabase = SupabaseConfig.client;
 
   Future<Module> createModule({
     required String courseId,

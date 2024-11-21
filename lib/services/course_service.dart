@@ -49,7 +49,99 @@ class CourseService {
   }
 
   // Créer un nouveau cours
-  Future<Map<String, dynamic>> createCourseWithModules({
+  Future<void> createCourseWithModules({
+    required String name,
+    required String description,
+    required String createdBy,
+    required List<Map<String, dynamic>> modules,
+  }) async {
+    try {
+      // creer le cours
+      final courseData = {
+        'name': name,
+        'description': description,
+        'created_by': createdBy,
+      };
+      // inserer le cours dans la BD
+      final courseResponse =
+          await _supabase.from('courses').insert(courseData).select().single();
+      // recuperer l'id du cours creer
+      final courseId = courseResponse['id'];
+      // creer les modules associes
+      for (var moduleData in modules) {
+        // ajoute le module
+        final moduleResponse = await _supabase
+            .from('modules')
+            .insert({
+              'course_id': courseId,
+              'name': moduleData['name'],
+              'description': moduleData['description'],
+              'order_index': moduleData['order_index'],
+            })
+            .select()
+            .single();
+        // recuperer l'id du module creer
+        final moduleId = moduleResponse['id'];
+
+        // creer les tps
+        if (moduleData['tps'] != null) {
+          for (var tpData in moduleData['tps']) {
+            await _supabase
+                .from('tps')
+                .insert({
+                  'module_id': moduleId,
+                  'title': tpData['title'],
+                  'description': tpData['description'],
+                  'due_date': tpData['due_date'],
+                  'max_points': tpData['max_points'],
+                  'file_urls': tpData['file_urls'] ?? [],
+                })
+                .select()
+                .single();
+          }
+        }
+        // creer les quizz
+        if (moduleData['quizzes'] != null) {
+          for (var quizData in moduleData['quizzes']) {
+            final quizResponse = await _supabase
+                .from('quizzes')
+                .insert({
+                  'module_id': moduleId,
+                  'title': quizData['title'],
+                  'time_limit': quizData['time_limit'],
+                  'time_unit': quizData['time_unit'],
+                  'passing_score': quizData['passing_score'] ?? 75,
+                })
+                .select()
+                .single();
+
+            // recuperer l'id du quizz creer
+            final quizId = quizResponse['id'];
+            // creer les questions associes
+            if (quizData['questions'] != null) {
+              for (var questionData in quizData['questions']) {
+                await _supabase
+                    .from('questions')
+                    .insert({
+                      'quiz_id': quizId,
+                      'question_text': questionData['question_text'],
+                      'question_type': questionData['question_type'],
+                      'answer': questionData['answer'],
+                      'points': questionData['points'],
+                      'choices': questionData['choices'] ?? [],
+                    })
+                    .select()
+                    .single();
+              }
+            }
+          }
+        }
+      }
+    } catch (e) {
+      print("Erreur lors de la creation des ressources : $e");
+    }
+  }
+  /* Future<Map<String, dynamic>> createCourseWithModules({
     required String name,
     required String category,
     required List<Module> modules,
@@ -139,7 +231,7 @@ class CourseService {
     } catch (e) {
       throw Exception('Erreur lors de la création du cours: $e');
     }
-  }
+  } */
 
   // Supprimer un cours
   Future<void> deleteCourse(String courseId) async {
