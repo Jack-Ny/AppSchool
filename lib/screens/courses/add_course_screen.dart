@@ -1,6 +1,6 @@
+import 'package:app_school/config/supabase_config.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../models/module.dart';
 import '../../models/quiz.dart';
 import '../../models/tp.dart';
@@ -54,6 +54,8 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   final _courseService = CourseService();
   final List<ModuleFormData> _modules = [];
   bool _isLoading = false;
+  int _currentStep = 0;
+  final _formKey = GlobalKey<FormState>();
 
   // Validation des champs avant l'ajout du cours
   bool get _isFormValid {
@@ -75,17 +77,19 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   // Sauvegarde du cours avec validation
   Future<void> _saveCourse() async {
-    if (!_isFormValid) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Veuillez remplir tous les champs')),
-      );
-      return;
-    }
+    // if (!_isFormValid) {
+    //   ScaffoldMessenger.of(context).showSnackBar(
+    //     const SnackBar(content: Text('Veuillez remplir tous les champs')),
+    //   );
+    //   return;
+    // }
+    if(!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
 
     try {
-      setState(() => _isLoading = true);
 
-      final userId = Supabase.instance.client.auth.currentUser?.id;
+      final userId = SupabaseConfig.client.auth.currentUser?.id;
       if (userId == null) throw Exception('Utilisateur non connecté');
 
       final modulesJson = _modules.map((moduleData) {
@@ -108,13 +112,14 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context);
+      
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Cours créé avec succès'),
           backgroundColor: Colors.green,
         ),
       );
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -132,137 +137,279 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text('Ajoutez un cours'),
+        title: const Text('Créer un nouveau cours'),
+        centerTitle: true,
         elevation: 0,
-        backgroundColor: Colors.transparent,
-        foregroundColor: Colors.black,
       ),
-      body: Stack(
-        children: [
-          SingleChildScrollView(
-            padding: const EdgeInsets.all(20),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                _buildCourseInfo(),
-                const SizedBox(height: 20),
-                ..._modules.map((module) => _buildModuleCard(module)),
-                _buildAddModuleButton(),
-                const SizedBox(height: 40),
-                _buildSaveButton(),
-              ],
-            ),
-          ),
-          if (_isLoading)
-            Container(
-              color: Colors.black.withOpacity(0.5),
-              child: const Center(
-                child: CircularProgressIndicator(),
+      body: Form(
+        key: _formKey,
+        child: Stepper(
+          type: StepperType.vertical,
+          currentStep: _currentStep,
+          onStepContinue: () {
+            if (_currentStep < 2) {
+              setState(() => _currentStep++);
+            } else {
+              _saveCourse();
+            }
+          },
+          onStepCancel: () {
+            if (_currentStep > 0) {
+              setState(() => _currentStep--);
+            }
+          },
+          controlsBuilder: (context, details) {
+            return Padding(
+              padding: const EdgeInsets.only(top: 20.0),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: _isLoading ? null : details.onStepContinue,
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.all(16),
+                        backgroundColor: Theme.of(context).primaryColor,
+                      ),
+                      child: Text(
+                        _currentStep == 2 ? 'Créer le cours' : 'Continuer',
+                        style: const TextStyle(fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  if (_currentStep > 0) ...[
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: OutlinedButton(
+                        onPressed: details.onStepCancel,
+                        style: OutlinedButton.styleFrom(
+                          padding: const EdgeInsets.all(16),
+                        ),
+                        child: const Text(
+                          'Retour',
+                          style: TextStyle(fontSize: 16),
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
               ),
+            );
+          },
+          steps: [
+            Step(
+              title: const Text('Informations générales'),
+              content: _buildCourseInfoStep(),
+              isActive: _currentStep >= 0,
             ),
-        ],
-      ),
-    );
-  }
-
-  // Formulaire de base pour le nom et la catégorie du cours
-  Widget _buildCourseInfo() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(15),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 10,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
-      child: Column(
-        children: [
-          TextField(
-            controller: _courseNameController,
-            decoration: const InputDecoration(
-              hintText: 'Nom du cours',
-              border: InputBorder.none,
-              hintStyle: TextStyle(color: Colors.grey),
+            Step(
+              title: const Text('Modules'),
+              content: _buildModulesStep(),
+              isActive: _currentStep >= 1,
             ),
-          ),
-          const Divider(),
-          TextField(
-            controller: _courseDescriptionController,
-            decoration: const InputDecoration(
-              hintText: 'Catégorie',
-              border: InputBorder.none,
-              hintStyle: TextStyle(color: Colors.grey),
+            Step(
+              title: const Text('Contenu des modules'),
+              content: _buildModuleContentStep(),
+              isActive: _currentStep >= 2,
             ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Carte de module avec quiz et TP
-  Widget _buildModuleCard(ModuleFormData moduleData) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 20),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(15),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: moduleData.nameController,
-              decoration: const InputDecoration(
-                hintText: 'Nom du module',
-                suffixIcon: Icon(Icons.edit),
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 15),
-            _buildQuizzesSection(moduleData),
-            const SizedBox(height: 15),
-            _buildTPsSection(moduleData),
           ],
         ),
       ),
     );
   }
 
+  // widget creation de cours
+  Widget _buildCourseInfoStep() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _courseNameController,
+          decoration: InputDecoration(
+            labelText: 'Nom du cours',
+            hintText: 'Ex: Introduction à Flutter',
+            prefixIcon: const Icon(Icons.school),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          validator: (value) {
+            if (value?.isEmpty ?? true) {
+              return 'Le nom du cours est requis';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 20),
+        TextFormField(
+          controller: _courseDescriptionController,
+          maxLines: 4,
+          decoration: InputDecoration(
+            labelText: 'Description du cours',
+            hintText: 'Décrivez le contenu et les objectifs du cours...',
+            prefixIcon: const Icon(Icons.description),
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          // validator: (value) {
+          //   if (value?.isEmpty ?? true) {
+          //     return 'La description est requise';
+          //   }
+          //   return null;
+          // },
+        ),
+      ],
+    );
+  }
+
+  // widget creation de module
+  Widget _buildModulesStep() {
+    return Column(
+      children: [
+        ..._modules.asMap().entries.map((entry) => _buildModuleCard(entry.key)),
+        const SizedBox(height: 16),
+        OutlinedButton.icon(
+          onPressed: _addModule,
+          icon: const Icon(Icons.add),
+          label: const Text('Ajouter un module'),
+          style: OutlinedButton.styleFrom(
+            padding: const EdgeInsets.all(16),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // widget carte creation de module
+  Widget _buildModuleCard(int index) {
+    final module = _modules[index];
+    return Card(
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: ExpansionTile(
+        title: Text('Module ${index + 1}'),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                TextFormField(
+                  controller: module.nameController,
+                  decoration: InputDecoration(
+                    labelText: 'Nom du module',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                ),
+                if (module.descriptionController != null) ...[
+                  const SizedBox(height: 16),
+                  TextFormField(
+                    controller: module.descriptionController!,
+                    maxLines: 3,
+                    decoration: InputDecoration(
+                      labelText: 'Description du module',
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                    ),
+                  ),
+                ],
+                const SizedBox(height: 16),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    TextButton.icon(
+                      onPressed: () => _removeModule(index),
+                      icon: const Icon(Icons.delete, color: Colors.red),
+                      label: const Text(
+                        'Supprimer',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // widget creation de module contenu
+  Widget _buildModuleContentStep() {
+    return Column(
+      children: _modules.asMap().entries.map((entry) {
+        final moduleIndex = entry.key;
+        final module = entry.value;
+        return Card(
+          margin: const EdgeInsets.only(bottom: 16),
+          child: ExpansionTile(
+            title: Text(module.nameController.text.isEmpty
+                ? 'Module ${moduleIndex + 1}'
+                : module.nameController.text),
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _buildQuizSection(module),
+                    const SizedBox(height: 16),
+                    _buildTPSection(module),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        );
+      }).toList(),
+    );
+  }
+
   // Section des quizzes
-  Widget _buildQuizzesSection(ModuleFormData moduleData) {
+  Widget _buildQuizSection(ModuleFormData module) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('QUIZZ', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ...moduleData.quizzes.map((quiz) => Chip(
-                    label: Text(quiz.title),
-                    onDeleted: () => _removeQuiz(moduleData, quiz),
-                  )),
-              ActionChip(
-                label: const Text('+ QUIZZ'),
-                onPressed: () => _showQuizDialog(moduleData),
+              const Text(
+                'Quiz',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle),
+                onPressed: () => _showQuizDialog(module),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: module.quizzes.map((quiz) {
+              return Chip(
+                label: Text(quiz.title),
+                deleteIcon: const Icon(Icons.close, size: 18),
+                onDeleted: () => _removeQuiz(module, quiz),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -270,30 +417,43 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   }
 
   // Section des TPs
-  Widget _buildTPsSection(ModuleFormData moduleData) {
+  Widget _buildTPSection(ModuleFormData module) {
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(12),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          const Text('TPs', style: TextStyle(fontWeight: FontWeight.bold)),
-          const SizedBox(height: 10),
-          Wrap(
-            spacing: 10,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              ...moduleData.tps.map((tp) => Chip(
-                    label: Text(tp.title),
-                    onDeleted: () => _removeTP(moduleData, tp),
-                  )),
-              ActionChip(
-                label: const Text('+ TPs'),
-                onPressed: () => _showTPDialog(moduleData),
+              const Text(
+                'Travaux Pratiques',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              IconButton(
+                icon: const Icon(Icons.add_circle),
+                onPressed: () => _showTPDialog(module),
               ),
             ],
+          ),
+          const SizedBox(height: 8),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: module.tps.map((tp) {
+              return Chip(
+                label: Text(tp.title),
+                deleteIcon: const Icon(Icons.close, size: 18),
+                onDeleted: () => _removeTP(module, tp),
+              );
+            }).toList(),
           ),
         ],
       ),
@@ -301,44 +461,25 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   }
 
   // Ajout d'un module
-  Widget _buildAddModuleButton() {
-    return ElevatedButton.icon(
-      onPressed: _addModule,
-      icon: const Icon(Icons.add),
-      label: const Text('Ajouter un module'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: const Color(0xFF0E6952),
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-    );
-  }
 
   // Bouton d'enregistrement
-  Widget _buildSaveButton() {
-    return ElevatedButton(
-      onPressed: _isLoading || !_isFormValid ? null : _saveCourse,
-      child: const Text('Enregistrer'),
-      style: ElevatedButton.styleFrom(
-        backgroundColor: Colors.blue,
-        padding: const EdgeInsets.symmetric(vertical: 15),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(30),
-        ),
-      ),
-    );
-  }
 
   // Ajouter un module
   void _addModule() {
     setState(() {
       _modules.add(ModuleFormData(
         nameController: TextEditingController(),
+        descriptionController: TextEditingController(),
         quizzes: [],
         tps: [],
       ));
+    });
+  }
+
+  // suppresion module
+  void _removeModule(int index) {
+    setState(() {
+      _modules.removeAt(index);
     });
   }
 
@@ -612,7 +753,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
               style: TextButton.styleFrom(foregroundColor: Colors.red),
             ),
           ],
-        ),
+        ), 
       ),
     );
   }
