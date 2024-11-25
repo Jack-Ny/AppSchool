@@ -16,6 +16,26 @@ class UserService {
     return List<Map<String, dynamic>>.from(students);
   }
 
+// obtenir l'utilisateur courant
+  Future<Map<String, dynamic>> getCurrentUser() async {
+    try {
+      final userId = _supabase.auth.currentUser?.id;
+      if (userId == null) throw Exception('Utilisateur non connecté');
+
+      final response =
+          await _supabase.from('users').select().eq('id', userId).single();
+
+      return response;
+    } catch (e) {
+      throw Exception('Erreur lors de la récupération du profil');
+    }
+  }
+
+// se deconnecter
+  Future<void> signOut() async {
+    await _supabase.auth.signOut();
+  }
+
   Future<AppUser> createUser({
     required String email,
     required String name,
@@ -183,6 +203,24 @@ class UserService {
 
   // Fonction utilitaire pour envoyer un email de bienvenue
   Future<void> sendWelcomeEmail(String email, String password) async {
-    // TODO: Implémenter l'envoi d'email avec un service tiers
+    try {
+      // Appeler la Edge Function Supabase pour envoyer l'email
+      await _supabase.functions.invoke(
+        'send-welcome-email',
+        body: {
+          'email': email,
+          'password': password,
+          'templateData': {
+            'appName': 'Votre App',
+            'loginUrl': 'https://votre-app.com/login',
+          }
+        },
+      );
+
+      print('Email de bienvenue envoyé à: $email');
+    } catch (e) {
+      print('Erreur lors de l\'envoi de l\'email: $e');
+      throw Exception('Échec de l\'envoi de l\'email de bienvenue');
+    }
   }
 }

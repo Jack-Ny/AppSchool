@@ -43,34 +43,28 @@ class DashboardService {
 
   Future<List<Map<String, dynamic>>> getRecentCourses() async {
     try {
-      final courses = await _supabase
-          .from('courses')
-          .select('''
-            id,
-            name,
-            description,
-            created_by,
-            created_at,
-            is_active,
-            teacher_courses (
-              teacher:teachers (
-                id,
-                user:users (
-                  name
-                )
-              )
-            ),
-            enrollments:course_enrollments(count)
-          ''')
-          .eq('is_active', true)
-          .order('created_at', ascending: false)
-          .limit(5);
+      final response = await _supabase.from('courses').select('''
+        *,
+        enrollments:course_enrollments!course_id (
+          count
+        ),
+        teacher_courses (
+          teacher:teachers (
+            user:users (*)
+          )
+        )
+      ''');
+      print('Données reçues: $response'); // Debug
 
-      print('Cours récents obtenus: $courses'); // Pour débogage
-      return List<Map<String, dynamic>>.from(courses);
+      if (response == null) {
+        print('Réponse null de Supabase');
+        return [];
+      }
+
+      return List<Map<String, dynamic>>.from(response);
     } catch (e) {
-      print('Erreur lors de la récupération des cours: $e');
-      throw Exception('Erreur lors de la récupération des cours: $e');
+      print('Erreur dans getRecentCourses: $e');
+      return [];
     }
   }
 }

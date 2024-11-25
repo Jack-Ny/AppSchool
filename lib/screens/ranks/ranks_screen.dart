@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
+import '../../services/ranks_service.dart';
 
 class RanksScreen extends StatefulWidget {
   const RanksScreen({Key? key}) : super(key: key);
@@ -10,47 +11,30 @@ class RanksScreen extends StatefulWidget {
 
 class _RanksScreenState extends State<RanksScreen> {
   int _selectedIndex = 3; // Index pour la bottomNavigationBar (RANGS)
+  final RanksService _ranksService = RanksService();
+  bool _loading = true;
+  List<Map<String, dynamic>> _ranks = [];
 
-  final List<Map<String, dynamic>> _topThree = [
-    {
-      'name': 'Davis Curtis',
-      'points': 2569,
-      'image': 'assets/avatars/avatar1.png',
-      'position': 1,
-      'backgroundColor': const Color(0xFF98FB98),
-    },
-    {
-      'name': 'Alena Donin',
-      'points': 1469,
-      'image': 'assets/avatars/avatar2.png',
-      'position': 2,
-      'backgroundColor': const Color(0xFFFFB6C1),
-    },
-    {
-      'name': 'Craig Gouse',
-      'points': 1053,
-      'image': 'assets/avatars/avatar3.png',
-      'position': 3,
-      'backgroundColor': const Color(0xFFADD8E6),
-    },
-  ];
+  @override
+  void initState() {
+    super.initState();
+    _loadRanks();
+  }
 
-  final List<Map<String, dynamic>> _otherRanks = [
-    {
-      'name': 'Madelyn Dias',
-      'points': 590,
-      'image': 'assets/avatars/avatar4.png',
-      'position': 4,
-      'backgroundColor': const Color(0xFFE6E6FA),
-    },
-    {
-      'name': 'Zain Vaccaro',
-      'points': 448,
-      'image': 'assets/avatars/avatar5.png',
-      'position': 5,
-      'backgroundColor': const Color(0xFFFFE4E1),
-    },
-  ];
+  Future<void> _loadRanks() async {
+    try {
+      final ranks = await _ranksService.getStudentRanks();
+      setState(() {
+        _ranks = ranks;
+        _loading = false;
+      });
+    } catch (e) {
+      setState(() => _loading = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur de chargement des rangs')),
+      );
+    }
+  }
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -95,124 +79,88 @@ class _RanksScreenState extends State<RanksScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          const SizedBox(height: 20),
-          // Podium
-          SizedBox(
-            height: 450,
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                Positioned(
-                  bottom: 0,
-                  child: Row(
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : _ranks.isEmpty
+              ? Center(
+                  child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      _buildPodiumStep('2', 120, Colors.indigo.shade100),
-                      const SizedBox(width: 2),
-                      _buildPodiumStep('1', 160, Colors.indigo.shade100),
-                      const SizedBox(width: 2),
-                      _buildPodiumStep('3', 80, Colors.indigo.shade100),
-                    ],
-                  ),
-                ),
-                // Participants - Repositionnés au-dessus du podium
-                Positioned(
-                  left: 20,
-                  bottom: 140, // Ajusté pour être au-dessus du podium
-                  child: _buildTopThreeItem(_topThree[1], 180), // 2ème place
-                ),
-                Positioned(
-                  bottom: 180, // Ajusté pour être au-dessus du podium
-                  child: _buildTopThreeItem(_topThree[0], 220), // 1ère place
-                ),
-                Positioned(
-                  right: 20,
-                  bottom: 100, // Ajusté pour être au-dessus du podium
-                  child: _buildTopThreeItem(_topThree[2], 160), // 3ème place
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 20),
-          // Liste des autres rangs
-          Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.symmetric(horizontal: 20),
-              itemCount: _otherRanks.length,
-              itemBuilder: (context, index) {
-                final rank = _otherRanks[index];
-                return Container(
-                  margin: const EdgeInsets.only(bottom: 10),
-                  padding: const EdgeInsets.all(15),
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(15),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.grey.withOpacity(0.1),
-                        spreadRadius: 1,
-                        blurRadius: 5,
+                    children: const [
+                      Icon(Icons.emoji_events_outlined,
+                          size: 80, color: Colors.grey),
+                      SizedBox(height: 16),
+                      Text(
+                        'Pas encore de classement disponible',
+                        style: TextStyle(
+                          fontSize: 20,
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ],
                   ),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 30,
-                        height: 30,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          color: Colors.grey.shade200,
-                        ),
-                        child: Center(
-                          child: Text(
-                            '${rank['position']}',
-                            style: const TextStyle(
-                              color: Colors.black54,
-                              fontWeight: FontWeight.bold,
+                )
+              : Column(
+                  children: [
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      height: 450,
+                      child: Stack(
+                        alignment: Alignment.center,
+                        children: [
+                          // Podium
+                          Positioned(
+                            bottom: 0,
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                _buildPodiumStep(
+                                    '2', 120, Colors.indigo.shade100),
+                                const SizedBox(width: 2),
+                                _buildPodiumStep(
+                                    '1', 160, Colors.indigo.shade100),
+                                const SizedBox(width: 2),
+                                _buildPodiumStep(
+                                    '3', 80, Colors.indigo.shade100),
+                              ],
                             ),
                           ),
-                        ),
-                      ),
-                      const SizedBox(width: 15),
-                      CircleAvatar(
-                        radius: 25,
-                        backgroundColor: rank['backgroundColor'],
-                        child: const Icon(Icons.person, color: Colors.white),
-                      ),
-                      const SizedBox(width: 15),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              rank['name'],
-                              style: const TextStyle(
-                                fontWeight: FontWeight.bold,
-                                fontSize: 16,
-                              ),
+                          // Top 3 students
+                          if (_ranks.length > 1)
+                            Positioned(
+                              left: 20,
+                              bottom: 140,
+                              child: _buildTopThreeItem(_ranks[1], 180),
                             ),
-                            Text(
-                              '${rank['points']} points',
-                              style: TextStyle(
-                                color: Colors.grey.shade600,
-                                fontSize: 14,
-                              ),
+                          if (_ranks.isNotEmpty)
+                            Positioned(
+                              bottom: 180,
+                              child: _buildTopThreeItem(_ranks[0], 220),
                             ),
-                          ],
-                        ),
+                          if (_ranks.length > 2)
+                            Positioned(
+                              right: 20,
+                              bottom: 100,
+                              child: _buildTopThreeItem(_ranks[2], 160),
+                            ),
+                        ],
                       ),
-                    ],
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
-      ),
+                    ),
+                    const SizedBox(height: 20),
+                    // Autres rangs
+                    Expanded(
+                      child: ListView.builder(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
+                        itemCount: _ranks.length > 3 ? _ranks.length - 3 : 0,
+                        itemBuilder: (context, index) {
+                          final rank = _ranks[index + 3];
+                          return _buildRankListItem(rank, index + 4);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
@@ -234,7 +182,7 @@ class _RanksScreenState extends State<RanksScreen> {
     return Column(
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (user['position'] == 1)
+        if (user['rank'] == 1)
           Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
@@ -246,16 +194,13 @@ class _RanksScreenState extends State<RanksScreen> {
         const SizedBox(height: 8),
         CircleAvatar(
           radius: 35,
-          backgroundColor: user['backgroundColor'],
+          backgroundColor: _getBackgroundColor(user['rank']),
           child: const Icon(Icons.person, color: Colors.white, size: 40),
         ),
         const SizedBox(height: 12),
         Text(
-          user['name'],
-          style: const TextStyle(
-            fontWeight: FontWeight.bold,
-            fontSize: 16,
-          ),
+          user['full_name'],
+          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         const SizedBox(height: 8),
         Container(
@@ -265,7 +210,7 @@ class _RanksScreenState extends State<RanksScreen> {
             borderRadius: BorderRadius.circular(15),
           ),
           child: Text(
-            '${user['points']}',
+            '${user['total_points']}',
             style: const TextStyle(
               color: Colors.black87,
               fontWeight: FontWeight.bold,
@@ -274,6 +219,19 @@ class _RanksScreenState extends State<RanksScreen> {
         ),
       ],
     );
+  }
+
+  Color _getBackgroundColor(int rank) {
+    switch (rank) {
+      case 1:
+        return const Color(0xFF98FB98);
+      case 2:
+        return const Color(0xFFFFB6C1);
+      case 3:
+        return const Color(0xFFADD8E6);
+      default:
+        return const Color(0xFFE6E6FA);
+    }
   }
 
   Widget _buildPodiumStep(String position, double height, Color color) {
@@ -296,4 +254,74 @@ class _RanksScreenState extends State<RanksScreen> {
       ),
     );
   }
+}
+
+Widget _buildRankListItem(Map<String, dynamic> rank, int position) {
+  return Container(
+    margin: const EdgeInsets.only(bottom: 10),
+    padding: const EdgeInsets.all(15),
+    decoration: BoxDecoration(
+      color: Colors.white,
+      borderRadius: BorderRadius.circular(15),
+      boxShadow: [
+        BoxShadow(
+          color: Colors.grey.withOpacity(0.1),
+          spreadRadius: 1,
+          blurRadius: 5,
+        ),
+      ],
+    ),
+    child: Row(
+      children: [
+        // Position
+        Container(
+          width: 30,
+          height: 30,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.grey.shade200,
+          ),
+          child: Center(
+            child: Text(
+              '$position',
+              style: const TextStyle(
+                color: Colors.black54,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 15),
+        // Avatar
+        CircleAvatar(
+          radius: 25,
+          backgroundColor: const Color(0xFFE6E6FA),
+          child: const Icon(Icons.person, color: Colors.white),
+        ),
+        const SizedBox(width: 15),
+        // Nom et points
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                rank['full_name'] ?? 'Inconnu',
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              Text(
+                '${rank['total_points']} points',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 14,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    ),
+  );
 }

@@ -33,37 +33,37 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
   Future<void> _loadStudents() async {
     setState(() => _isLoading = true);
     try {
-      final enrolled = await _studentService.getEnrolledStudents(widget.courseId);
-      final available = await _studentService.getAvailableStudents(widget.courseId);
+      final enrolled =
+          await _studentService.getEnrolledStudents(widget.courseId);
+      final available =
+          await _studentService.getAvailableStudents(widget.courseId);
       if (mounted) {
         setState(() {
-        _enrolledStudents = enrolled;
-        _availableStudents = available;
-        _filteredStudents = available;
-      });
+          _enrolledStudents = enrolled;
+          _availableStudents = available;
+          _filteredStudents = available;
+        });
       }
-      
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Erreur: $e')),
-      );
+          SnackBar(content: Text('Erreur: $e')),
+        );
       }
-      
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
       }
-      
     }
   }
 
   void _filterStudents(String query) {
     setState(() {
       _filteredStudents = _availableStudents
-          .where((student) => 
-              student['user']['name'].toString().toLowerCase()
-                  .contains(query.toLowerCase()))
+          .where((student) => student['user']['name']
+              .toString()
+              .toLowerCase()
+              .contains(query.toLowerCase()))
           .toList();
     });
   }
@@ -133,22 +133,23 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-  isExpanded: true,
-  hint: const Text('Sélectionner un élève'),
-  value: selectedStudentId,
-  items: _filteredStudents.map((student) {
-    // Correction du typage pour accéder aux données correctement
-    return DropdownMenuItem<String>(
-      value: student['id'].toString(), // Convertir en String si nécessaire
-      child: Text(student['user']['name'] as String),
-    );
-  }).toList(),
-  onChanged: (value) {
-    setDialogState(() {
-      selectedStudentId = value;
-    });
-  },
-),
+                          isExpanded: true,
+                          hint: const Text('Sélectionner un élève'),
+                          value: selectedStudentId,
+                          items: _filteredStudents.map((student) {
+                            // Correction du typage pour accéder aux données correctement
+                            return DropdownMenuItem<String>(
+                              value: student['id']
+                                  .toString(), // Convertir en String si nécessaire
+                              child: Text(student['user']['name'] as String),
+                            );
+                          }).toList(),
+                          onChanged: (value) {
+                            setDialogState(() {
+                              selectedStudentId = value;
+                            });
+                          },
+                        ),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -197,7 +198,7 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
           onPressed: () => Navigator.pop(context),
         ),
         title: Text(
-          'Élèves - ${widget.courseName}',
+          'Élèves au cours - ${widget.courseName}',
           style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
@@ -207,7 +208,7 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: _isLoading 
+      body: _isLoading
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [

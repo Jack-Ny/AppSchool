@@ -19,10 +19,14 @@ class Question {
 
   static String getDisplayName(String type) {
     switch (type) {
-      case 'trueFalse': return 'Vrai/Faux';
-      case 'singleAnswer': return 'Réponse unique';
-      case 'selection': return 'Sélection multiple';
-      default: return type;
+      case 'trueFalse':
+        return 'Vrai/Faux';
+      case 'singleAnswer':
+        return 'Réponse unique';
+      case 'selection':
+        return 'Sélection multiple';
+      default:
+        return type;
     }
   }
 
@@ -39,13 +43,13 @@ class Question {
     DateTime? createdAt,
     this.quiz,
     List<String>? choices,
-  })  :
-        this.id = id ?? const Uuid().v4(),
-        this.questionType = questionType.toLowerCase(),
+  })  : this.id = id ?? const Uuid().v4(),
+        this.questionType = questionType,
         this.createdAt = createdAt ?? DateTime.now(),
         this.choices = choices ?? [] {
     if (!validTypes.contains(this.questionType)) {
-      throw ArgumentError('Type de question invalide: $questionType. Les types valides sont: $validTypes');
+      throw ArgumentError(
+          'Type de question invalide: $questionType. Les types valides sont: $validTypes');
     }
   }
 

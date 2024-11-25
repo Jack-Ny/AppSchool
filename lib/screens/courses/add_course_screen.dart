@@ -10,7 +10,6 @@ import '../../models/tp.dart';
 import '../../services/course_service.dart';
 import '../../services/user_service.dart';
 
-
 class AddCourseScreen extends StatefulWidget {
   const AddCourseScreen({Key? key}) : super(key: key);
 
@@ -22,7 +21,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   final _formKey = GlobalKey<FormState>();
   final CourseService _courseService = CourseService();
   final UserService _userService = UserService();
-  
+
   String _courseName = '';
   String _courseDescription = '';
   List<Module> _modules = [];
@@ -36,7 +35,13 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
         actions: [
           TextButton(
             onPressed: _isLoading ? null : _saveCourse,
-            child: const Text('Enregistrer'),
+            child: _isLoading
+                ? const SizedBox(
+                    width: 20,
+                    height: 20,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('Enregistrer'),
           ),
         ],
       ),
@@ -158,15 +163,16 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('Quiz', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('Quiz',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ...module.quizzes.map((quiz) => QuizCard(
-          quiz: quiz,
-          onDelete: () {
-            setState(() {
-              module.quizzes.remove(quiz);
-            });
-          },
-        )),
+              quiz: quiz,
+              onDelete: () {
+                setState(() {
+                  module.quizzes.remove(quiz);
+                });
+              },
+            )),
         TextButton(
           onPressed: () {
             setState(() {
@@ -190,15 +196,16 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('TPs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        const Text('TPs',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ...module.tps.map((tp) => TPCard(
-          tp: tp,
-          onDelete: () {
-            setState(() {
-              module.tps.remove(tp);
-            });
-          },
-        )),
+              tp: tp,
+              onDelete: () {
+                setState(() {
+                  module.tps.remove(tp);
+                });
+              },
+            )),
         TextButton(
           onPressed: () {
             setState(() {
@@ -216,79 +223,120 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
   }
 
   Future<void> _saveCourse() async {
-    if (!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
     try {
+      // 1. Validation initiale
+      if (!_formKey.currentState!.validate()) {
+        print('Validation du formulaire échouée');
+        return;
+      }
+
+      if (_courseName.trim().isEmpty || _courseDescription.trim().isEmpty) {
+        throw Exception('Le nom et la description du cours sont requis');
+      }
+
+      if (_modules.isEmpty) {
+        throw Exception('Veuillez ajouter au moins un module');
+      }
+
+      // 2. Activer l'indicateur de chargement
+      setState(() => _isLoading = true);
+
+      // 3. Préparation et validation des données
       final userId = await _userService.getCurrentUserId();
       final courseId = const Uuid().v4();
+      print('Préparation du cours avec ID: $courseId');
 
-      
-    for (var module in _modules) {
-      module.id = const Uuid().v4();
-      module.courseId = courseId;
+      for (final module in _modules) {
+        if (module.name.trim().isEmpty) {
+          throw Exception('Le nom du module est requis');
+        }
 
-      // Mettre à jour les IDs des quiz
-      for (var quiz in module.quizzes) {
-        quiz.id = const Uuid().v4();
-        quiz.moduleId = module.id;
+        // Assigner les IDs
+        module.id = const Uuid().v4();
+        module.courseId = courseId;
+        print('Traitement du module: ${module.name}');
 
-        // Mettre à jour les IDs des questions
-        for (var question in quiz.questions) {
-          question.id = const Uuid().v4();
-          question.quizId = quiz.id;
+        // Traitement des quiz
+        for (final quiz in module.quizzes) {
+          if (quiz.title.trim().isEmpty) {
+            throw Exception('Le titre du quiz est requis');
+          }
+
+          quiz.id = const Uuid().v4();
+          quiz.moduleId = module.id;
+          print('Traitement du quiz: ${quiz.title}');
+
+          // Validation des questions
+          for (final question in quiz.questions) {
+            if (question.questionText.trim().isEmpty) {
+              throw Exception('Le texte de la question est requis');
+            }
+
+            question.id = const Uuid().v4();
+            question.quizId = quiz.id;
+          }
+        }
+
+        // Traitement des TPs
+        for (final tp in module.tps) {
+          if (tp.title.trim().isEmpty) {
+            throw Exception('Le titre du TP est requis');
+          }
+
+          tp.id = const Uuid().v4();
+          tp.moduleId = module.id;
+          print('Traitement du TP: ${tp.title}');
         }
       }
 
-      // Mettre à jour les IDs des TPs
-      for (var tp in module.tps) {
-        tp.id = const Uuid().v4();
-        tp.moduleId = module.id;
-      }
-    }
-
+      // 4. Sauvegarde des données
+      print('Début de la sauvegarde du cours');
       await _courseService.createCourseWithModules(
         name: _courseName,
         description: _courseDescription,
         createdBy: userId,
         modules: _modules,
       );
-      if (!mounted) return;
+      print('Cours sauvegardé avec succès');
 
+      // 5. Vérification du montage du widget
+      if (!mounted) {
+        print('Widget non monté, arrêt de la procédure');
+        return;
+      }
+
+      // 6. Affichage du message de succès
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-        content: Text(
-          'Cours créé avec succès',
-          style: TextStyle(color: Colors.white),
+          content: Text('Cours créé avec succès'),
+          backgroundColor: Colors.green,
+          behavior: SnackBarBehavior.floating,
         ),
-        backgroundColor: Colors.green,
-        duration: Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
       );
 
-      Navigator.of(context).pop(true);
-
+      // 7. Navigation sécurisée
+      if (mounted) {
+        print('Navigation vers la page précédente');
+        Navigator.of(context).pop(true); // Simplifié pour plus de robustesse
+      }
     } catch (e) {
-      if (!mounted) return;
+      print('Erreur lors de la sauvegarde: $e');
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-        content: Text(
-          'Erreur: $e',
-          style: const TextStyle(color: Colors.white),
-        ),
-        backgroundColor: Colors.red,
-        duration: const Duration(seconds: 3),
-        behavior: SnackBarBehavior.floating,
-      ),
-      );
+      // Gestion des erreurs uniquement si le widget est toujours monté
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Erreur: ${e.toString()}'),
+            backgroundColor: Colors.red,
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+      }
     } finally {
+      // Désactiver l'indicateur de chargement si le widget est toujours monté
       if (mounted) {
         setState(() => _isLoading = false);
       }
-      
     }
   }
 }
@@ -314,7 +362,8 @@ class _QuizCardState extends State<QuizCard> {
       elevation: 2,
       margin: const EdgeInsets.symmetric(vertical: 8),
       child: ExpansionTile(
-        title: Text(widget.quiz.title.isEmpty ? 'Nouveau Quiz' : widget.quiz.title),
+        title: Text(
+            widget.quiz.title.isEmpty ? 'Nouveau Quiz' : widget.quiz.title),
         children: [
           Padding(
             padding: const EdgeInsets.all(16),
@@ -327,7 +376,8 @@ class _QuizCardState extends State<QuizCard> {
                     labelText: 'Titre du quiz',
                     border: OutlineInputBorder(),
                   ),
-                  onChanged: (value) => setState(() => widget.quiz.title = value),
+                  onChanged: (value) =>
+                      setState(() => widget.quiz.title = value),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -340,9 +390,8 @@ class _QuizCardState extends State<QuizCard> {
                           border: OutlineInputBorder(),
                         ),
                         keyboardType: TextInputType.number,
-                        onChanged: (value) => setState(() => 
-                          widget.quiz.timeLimit = int.tryParse(value)!
-                        ),
+                        onChanged: (value) => setState(
+                            () => widget.quiz.timeLimit = int.tryParse(value)!),
                       ),
                     ),
                     const SizedBox(width: 16),
@@ -355,8 +404,7 @@ class _QuizCardState extends State<QuizCard> {
                         ),
                         keyboardType: TextInputType.number,
                         onChanged: (value) => setState(() =>
-                          widget.quiz.passingScore = int.tryParse(value)!
-                        ),
+                            widget.quiz.passingScore = int.tryParse(value)!),
                       ),
                     ),
                   ],
@@ -381,8 +429,8 @@ class _QuizCardState extends State<QuizCard> {
             Text(
               'Questions',
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
+                    fontWeight: FontWeight.bold,
+                  ),
             ),
             FilledButton.icon(
               onPressed: _addQuestion,
@@ -393,11 +441,11 @@ class _QuizCardState extends State<QuizCard> {
         ),
         const SizedBox(height: 8),
         ...widget.quiz.questions.map((question) => QuestionCard(
-          question: question,
-          onDelete: () => setState(() {
-            widget.quiz.questions.remove(question);
-          }),
-        )),
+              question: question,
+              onDelete: () => setState(() {
+                widget.quiz.questions.remove(question);
+              }),
+            )),
       ],
     );
   }
@@ -405,23 +453,23 @@ class _QuizCardState extends State<QuizCard> {
   void _addQuestion() {
     try {
       setState(() {
-      widget.quiz.questions.add(Question(
-        id: const Uuid().v4(),
-        quizId: widget.quiz.id,
-        questionText: '',
-        questionType: 'trueFalse',
-        answer: '',
-        points: 1,
-        choices: [],
-      ));
-      print('Question ajoutée'); 
-    });
-    } catch(e) {
+        widget.quiz.questions.add(Question(
+          id: const Uuid().v4(),
+          quizId: widget.quiz.id,
+          questionText: '',
+          questionType: 'singleAnswer',
+          answer: '',
+          points: 1,
+          choices: [],
+        ));
+        print('Question ajoutée');
+      });
+    } catch (e) {
+      print('Erreur: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Erreur: $e')),
-    );
+        SnackBar(content: Text('Erreur: $e')),
+      );
     }
-    
   }
 }
 
@@ -446,7 +494,7 @@ class _QuestionCardState extends State<QuestionCard> {
   void initState() {
     super.initState();
     // Initialiser les choix si vides pour le type selection
-    if (widget.question.questionType == 'selection' && 
+    if (widget.question.questionType == 'selection' &&
         (widget.question.choices?.isEmpty ?? true)) {
       widget.question.choices = [''];
     }
@@ -513,10 +561,12 @@ class _QuestionCardState extends State<QuestionCard> {
                 borderRadius: BorderRadius.circular(8),
               ),
             ),
-            items: questionTypes.map((type) => DropdownMenuItem(
-              value: type,
-              child: Text(_getQuestionTypeLabel(type)),
-            )).toList(),
+            items: questionTypes
+                .map((type) => DropdownMenuItem(
+                      value: type,
+                      child: Text(_getQuestionTypeLabel(type)),
+                    ))
+                .toList(),
             onChanged: _handleQuestionTypeChange,
           ),
         ),
@@ -610,7 +660,8 @@ class _QuestionCardState extends State<QuestionCard> {
         children: [
           Checkbox(
             value: _isChoiceSelected(entry.value),
-            onChanged: (checked) => _handleChoiceSelection(entry.value, checked),
+            onChanged: (checked) =>
+                _handleChoiceSelection(entry.value, checked),
           ),
           Expanded(
             child: TextFormField(
@@ -684,8 +735,8 @@ class _QuestionCardState extends State<QuestionCard> {
 
   void _handleChoiceSelection(String choice, bool? checked) {
     setState(() {
-      var answers = widget.question.answer.isEmpty 
-          ? [] 
+      var answers = widget.question.answer.isEmpty
+          ? []
           : widget.question.answer.split(',');
       if (checked ?? false) {
         answers.add(choice);
@@ -720,8 +771,6 @@ class _QuestionCardState extends State<QuestionCard> {
     });
   }
 }
-
-
 
 class TPCard extends StatefulWidget {
   final TP tp;
@@ -772,7 +821,8 @@ class _TPCardState extends State<TPCard> {
                     ),
                   ),
                   maxLines: 3,
-                  onChanged: (value) => setState(() => widget.tp.description = value),
+                  onChanged: (value) =>
+                      setState(() => widget.tp.description = value),
                 ),
                 const SizedBox(height: 16),
                 Row(
@@ -787,15 +837,15 @@ class _TPCardState extends State<TPCard> {
                           ),
                         ),
                         keyboardType: TextInputType.number,
-                        onChanged: (value) => setState(() =>
-                          widget.tp.maxPoints = int.tryParse(value)
-                        ),
+                        onChanged: (value) => setState(
+                            () => widget.tp.maxPoints = int.tryParse(value)),
                       ),
                     ),
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
-                        initialValue: widget.tp.dueDate?.toString().split(' ')[0],
+                        initialValue:
+                            widget.tp.dueDate?.toString().split(' ')[0],
                         decoration: InputDecoration(
                           labelText: 'Date limite',
                           border: OutlineInputBorder(
@@ -806,9 +856,11 @@ class _TPCardState extends State<TPCard> {
                             onPressed: () async {
                               final date = await showDatePicker(
                                 context: context,
-                                initialDate: widget.tp.dueDate ?? DateTime.now(),
+                                initialDate:
+                                    widget.tp.dueDate ?? DateTime.now(),
                                 firstDate: DateTime.now(),
-                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                                lastDate: DateTime.now()
+                                    .add(const Duration(days: 365)),
                               );
                               if (date != null) {
                                 setState(() => widget.tp.dueDate = date);
@@ -834,24 +886,26 @@ class _TPCardState extends State<TPCard> {
                           style: Theme.of(context).textTheme.titleMedium,
                         ),
                         const SizedBox(height: 8),
-                        if (widget.tp.files != null && widget.tp.files!.isNotEmpty)
+                        if (widget.tp.files != null &&
+                            widget.tp.files!.isNotEmpty)
                           ...widget.tp.files!.map((file) => ListTile(
-                            leading: const Icon(Icons.insert_drive_file),
-                            title: Text(file.path.split('/').last),
-                            trailing: IconButton(
-                              icon: const Icon(Icons.delete),
-                              onPressed: () {
-                                setState(() {
-                                  widget.tp.files!.remove(file);
-                                });
-                              },
-                            ),
-                          )),
+                                leading: const Icon(Icons.insert_drive_file),
+                                title: Text(file.path.split('/').last),
+                                trailing: IconButton(
+                                  icon: const Icon(Icons.delete),
+                                  onPressed: () {
+                                    setState(() {
+                                      widget.tp.files!.remove(file);
+                                    });
+                                  },
+                                ),
+                              )),
                         const SizedBox(height: 8),
                         Center(
                           child: FilledButton.icon(
                             onPressed: () async {
-                              final result = await FilePicker.platform.pickFiles(
+                              final result =
+                                  await FilePicker.platform.pickFiles(
                                 allowMultiple: true,
                                 type: FileType.any,
                               );
@@ -859,7 +913,8 @@ class _TPCardState extends State<TPCard> {
                                 setState(() {
                                   widget.tp.files ??= [];
                                   widget.tp.files!.addAll(
-                                    result.files.map((file) => File(file.path!)),
+                                    result.files
+                                        .map((file) => File(file.path!)),
                                   );
                                 });
                               }

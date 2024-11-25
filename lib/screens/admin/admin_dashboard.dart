@@ -35,16 +35,25 @@ class _AdminDashboardState extends State<AdminDashboard> {
     setState(() => _isLoading = true);
     try {
       final stats = await _dashboardService.getDashboardStats();
-      final courses = await _dashboardService.getRecentCourses();
+      final allCourses = await _dashboardService.getRecentCourses();
 
       print('Stats: $stats'); // Pour le débogage
-      print('Courses: $courses'); // Pour le débogage
+      print('Courses: $allCourses'); // Pour le débogage
 
-      setState(() {
-        _stats = stats;
-        _courses = courses;
-      });
+      if (mounted) {
+        setState(() {
+          _stats = stats;
+          _courses = allCourses;
+          _isLoading = false;
+        });
+      }
     } catch (e) {
+      if (mounted) {
+        setState(() {
+          _courses = [];
+          _isLoading = false;
+        });
+      }
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Erreur: $e'),
@@ -200,10 +209,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                           },
                           child: Row(
                             children: const [
-                              Text(
-                                'VOIR TOUS',
-                                style: TextStyle(color: Colors.blue),
-                              ),
+                              Text('VOIR TOUS',
+                                  style: TextStyle(color: Colors.blue)),
                               Icon(Icons.chevron_right, color: Colors.blue),
                             ],
                           ),
@@ -227,11 +234,31 @@ class _AdminDashboardState extends State<AdminDashboard> {
 
                     // Liste des cours
                     Expanded(
-                      child: ListView.builder(
-                        itemCount: _courses.length,
-                        itemBuilder: (context, index) =>
-                            _buildCourseCard(_courses[index]),
-                      ),
+                      child: _isLoading
+                          ? const Center(child: CircularProgressIndicator())
+                          : _courses.isEmpty
+                              ? Center(
+                                  child: Column(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: const [
+                                      Icon(Icons.school_outlined,
+                                          size: 64, color: Colors.grey),
+                                      SizedBox(height: 16),
+                                      Text(
+                                        'Aucun cours disponible',
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          color: Colors.grey,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                )
+                              : ListView.builder(
+                                  itemCount: _courses.length,
+                                  itemBuilder: (context, index) =>
+                                      _buildCourseCard(_courses[index]),
+                                ),
                     ),
                   ],
                 ),
@@ -280,6 +307,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
             context,
             MaterialPageRoute(builder: (context) => const UsersScreen()),
           ).then((_) => _loadDashboardData()); // recharger
+        } else if (card['title'] == 'COURS') {
+          Navigator.pushReplacementNamed(context, '/admin/courses');
         }
       },
       child: Container(

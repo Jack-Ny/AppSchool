@@ -247,9 +247,10 @@ class _CoursesScreenState extends State<CoursesScreen> {
     final teacherData = course['teacher_courses']?.isNotEmpty == true
         ? course['teacher_courses'][0]['teacher']['user']
         : null;
-    final enrollmentsCount = (course['enrollments'] as List?)?.isNotEmpty == true
-        ? course['enrollments'][0]['count']
-        : 0;
+    final enrollmentsCount =
+        (course['enrollments'] as List?)?.isNotEmpty == true
+            ? course['enrollments'][0]['count']
+            : 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -315,18 +316,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   children: [
                     InkWell(
                       onTap: () {
-                if (course['id'] != null) {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => CourseStudentsScreen(
-                        courseName: course['name'] ?? 'Sans nom',
-                        courseId: course['id'].toString(),
-                      ),
-                    ),
-                  );
-                }
-              },
+                        if (course['id'] != null) {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => CourseStudentsScreen(
+                                courseName: course['name'] ?? 'Sans nom',
+                                courseId: course['id'].toString(),
+                              ),
+                            ),
+                          );
+                        }
+                      },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,

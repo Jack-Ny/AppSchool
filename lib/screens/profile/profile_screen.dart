@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
+import '../../services/user_service.dart';
 import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -10,17 +11,43 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
+  final UserService _userService = UserService();
   int _selectedIndex = 4; // Index pour la bottomNavigationBar (PROFILS)
+  Map<String, dynamic>? _userData;
+  bool _loading = true;
 
-  // Données de test pour l'utilisateur
-  final Map<String, String> _userData = {
-    'fullName': 'John Doe',
-    'username': 'johndoe',
-    'birthDate': '15/04/1990',
-    'email': 'john.doe@example.com',
-    'phone': '(+226) 70975644',
-    'status': 'Administrateur',
-  };
+  @override
+  void initState() {
+    super.initState();
+    _loadUserProfile();
+  }
+
+  Future<void> _loadUserProfile() async {
+    try {
+      final userData = await _userService.getCurrentUser();
+      setState(() {
+        _userData = userData;
+        _loading = false;
+      });
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur de chargement du profil')),
+      );
+    }
+  }
+
+  Future<void> _handleSignOut() async {
+    try {
+      await _userService.signOut();
+      if (mounted) {
+        Navigator.of(context).pushReplacementNamed('/login');
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Erreur lors de la déconnexion')),
+      );
+    }
+  }
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -60,105 +87,85 @@ class _ProfileScreenState extends State<ProfileScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          children: [
-            // Photo de profil
-            Center(
-              child: Container(
-                width: 120,
-                height: 120,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(
-                    color: Colors.green,
-                    width: 2,
-                  ),
-                ),
-                child: const CircleAvatar(
-                  radius: 58,
-                  backgroundColor: Colors.white,
-                  child: Icon(
-                    Icons.person,
-                    size: 60,
-                    color: Colors.grey,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 30),
-
-            // Informations de l'utilisateur
-            _buildInfoCard(
-              title: 'Nom complet',
-              value: _userData['fullName']!,
-              icon: Icons.person_outline,
-            ),
-            _buildInfoCard(
-              title: "Nom d'utilisateur",
-              value: _userData['username']!,
-              icon: Icons.account_circle_outlined,
-            ),
-            _buildInfoCard(
-              title: 'Date de naissance',
-              value: _userData['birthDate']!,
-              icon: Icons.calendar_today,
-            ),
-            _buildInfoCard(
-              title: 'Adresse mail',
-              value: _userData['email']!,
-              icon: Icons.mail_outline,
-            ),
-            _buildInfoCard(
-              title: 'Téléphone',
-              value: _userData['phone']!,
-              icon: Icons.phone_outlined,
-            ),
-            _buildInfoCard(
-              title: 'Status',
-              value: _userData['status']!,
-              icon: Icons.admin_panel_settings_outlined,
-              valueColor: Colors.grey,
-            ),
-
-            const SizedBox(height: 30),
-
-            // Bouton Modifier
-            ElevatedButton(
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (context) => const EditProfileScreen(),
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primaryBlue,
-                minimumSize: const Size(double.infinity, 56),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-              ),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
-                  Text(
-                    'Modifier',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+      body: _loading
+          ? const Center(child: CircularProgressIndicator())
+          : SingleChildScrollView(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                children: [
+                  // Photo de profil
+                  Center(
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: Colors.green,
+                          width: 2,
+                        ),
+                      ),
+                      child: const CircleAvatar(
+                        radius: 58,
+                        backgroundColor: Colors.white,
+                        child: Icon(
+                          Icons.person,
+                          size: 60,
+                          color: Colors.grey,
+                        ),
+                      ),
                     ),
                   ),
-                  SizedBox(width: 8),
-                  Icon(Icons.edit),
+                  const SizedBox(height: 30),
+
+                  // Informations de l'utilisateur
+                  _buildInfoCard(
+                    title: 'Nom d\'utilisateur',
+                    value: _userData?['name'] ?? 'Non renseigné',
+                    icon: Icons.person_outline,
+                  ),
+                  _buildInfoCard(
+                    title: "Adresse mail",
+                    value: _userData?['email'] ?? 'Non renseigné',
+                    icon: Icons.mail_outline,
+                  ),
+                  _buildInfoCard(
+                    title: 'Status',
+                    value: _userData?['user_type'] ?? 'Non renseigné',
+                    icon: Icons.admin_panel_settings_outlined,
+                    valueColor: Colors.grey,
+                  ),
+
+                  const SizedBox(height: 30),
+
+                  // Bouton Modifier
+                  ElevatedButton(
+                    onPressed: _handleSignOut,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: AppColors.primaryBlue,
+                      minimumSize: const Size(double.infinity, 56),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: const [
+                        Text(
+                          'Déconnexion',
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        SizedBox(width: 8),
+                        Icon(Icons.logout),
+                      ],
+                    ),
+                  ),
                 ],
               ),
             ),
-          ],
-        ),
-      ),
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _selectedIndex,
         onTap: _onBottomNavTap,
