@@ -1,30 +1,52 @@
-import 'package:app_school/models/quiz.dart';
-import 'package:app_school/models/tp.dart';
+import 'package:uuid/uuid.dart';
+
+import 'course.dart';
+import 'quiz.dart';
+import 'tp.dart';
 
 class Module {
-  final String? id;
-  final String courseId;
-  final String name;
-  final String? description;
-  final int orderIndex;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
-  final List<Quiz> quizzes;
-  final List<TP> tps;
+  String id;
+  String? courseId;
+  String name;
+  String? description;
+  int orderIndex;
+  bool isActive;
+  DateTime createdAt;
+  DateTime updatedAt;
+
+  // Relations
+  Course? course;
+  List<TP> tps;
+  List<Quiz> quizzes;
 
   Module({
-    this.id,
-    required this.courseId,
+    String? id,
+    this.courseId,
     required this.name,
     this.description,
     this.orderIndex = 0,
     this.isActive = true,
-    required this.createdAt,
-    required this.updatedAt,
-    this.quizzes = const [],
+    DateTime? createdAt,
+    DateTime? updatedAt,
+    this.course,
     this.tps = const [],
-  });
+    this.quizzes = const [],
+  })  : this.id = id ?? const Uuid().v4(),
+        this.createdAt = createdAt ?? DateTime.now(),
+        this.updatedAt = updatedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'course_id': courseId,
+      'name': name,
+      'description': description,
+      'order_index': orderIndex,
+      'is_active': isActive,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+    };
+  }
 
   factory Module.fromJson(Map<String, dynamic> json) {
     return Module(
@@ -36,21 +58,6 @@ class Module {
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
-      quizzes:
-          (json['quizzes'] as List?)?.map((q) => Quiz.fromJson(q)).toList() ??
-              [],
-      tps: (json['tps'] as List?)?.map((t) => TP.fromJson(t)).toList() ?? [],
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'course_id': courseId,
-      'name': name,
-      if (description != null) 'description': description,
-      'order_index': orderIndex,
-      'is_active': isActive,
-    };
   }
 }

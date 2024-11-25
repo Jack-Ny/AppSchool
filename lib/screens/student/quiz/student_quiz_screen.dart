@@ -3,7 +3,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../constants/colors.dart';
 import '../../../models/quiz.dart';
 import '../../../models/question.dart';
-import '../../../models/answer.dart';
+import '../../../models/teacher.dart';
 import 'quiz_result_screen.dart';
 
 class StudentQuizScreen extends StatefulWidget {

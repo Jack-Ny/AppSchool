@@ -174,6 +174,13 @@ class UserService {
     }
   }
 
+  // obtenir l'utilisateur courant
+  Future<String> getCurrentUserId() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) throw Exception('Utilisateur non connecté');
+    return user.id;
+  }
+
   // Fonction utilitaire pour envoyer un email de bienvenue
   Future<void> sendWelcomeEmail(String email, String password) async {
     // TODO: Implémenter l'envoi d'email avec un service tiers

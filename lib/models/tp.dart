@@ -1,25 +1,56 @@
+import 'dart:io';
+
+import 'package:uuid/uuid.dart';
+
+import 'module.dart';
+import 'tp_submission.dart';
+
 class TP {
-  final String? id;
-  final String moduleId;
-  final String title;
-  final String description;
-  final DateTime? dueDate;
-  final int? maxPoints;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime deadline;
+  String id;
+  String? moduleId;
+  String title;
+  String description;
+  DateTime? dueDate;
+  int? maxPoints;
+  bool isActive;
+  DateTime createdAt;
+  List<String> fileUrls;
+  List<File>? files;
+
+  // Relations
+  Module? module;
+  List<TPSubmission> submissions;
 
   TP({
-    this.id,
-    required this.moduleId,
+    String? id,
+    this.moduleId,
     required this.title,
     required this.description,
     this.dueDate,
     this.maxPoints,
     this.isActive = true,
-    required this.createdAt,
-    required this.deadline,
-  });
+    DateTime? createdAt,
+    List<String>? fileUrls,
+    this.files,
+    this.module,
+    this.submissions = const [],
+  })  : this.id = id ?? const Uuid().v4(),
+        this.createdAt = createdAt ?? DateTime.now(),
+        this.fileUrls = fileUrls ?? [];
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'module_id': moduleId,
+      'title': title,
+      'description': description,
+      'due_date': dueDate?.toIso8601String(),
+      'max_points': maxPoints,
+      'is_active': isActive,
+      'created_at': createdAt.toIso8601String(),
+      'file_urls': fileUrls,
+    };
+  }
 
   factory TP.fromJson(Map<String, dynamic> json) {
     return TP(
@@ -27,24 +58,11 @@ class TP {
       moduleId: json['module_id'],
       title: json['title'],
       description: json['description'],
-      dueDate:
-          json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
       maxPoints: json['max_points'],
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
-      deadline: DateTime.parse(json['deadline']),
+      fileUrls: List<String>.from(json['file_urls'] ?? []),
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'module_id': moduleId,
-      'title': title,
-      'description': description,
-      if (dueDate != null) 'due_date': dueDate!.toIso8601String(),
-      if (maxPoints != null) 'max_points': maxPoints,
-      'is_active': isActive,
-    };
   }
 }

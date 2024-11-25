@@ -1,24 +1,66 @@
+import 'package:uuid/uuid.dart';
+
+import 'quiz.dart';
+
 class Question {
-  final String? id;
-  final String quizId;
-  final String questionText;
-  final String questionType;
-  final String answer;
-  final int points;
-  final List<Map<String, dynamic>>? choices;
-  final DateTime createdAt;
+  String id;
+  String? quizId;
+  String questionText;
+  String questionType;
+  String answer;
+  int points;
+  List<String> choices;
+  DateTime createdAt;
+  static const List<String> validTypes = [
+    'trueFalse',
+    'singleAnswer',
+    'selection'
+  ];
+
+  static String getDisplayName(String type) {
+    switch (type) {
+      case 'trueFalse': return 'Vrai/Faux';
+      case 'singleAnswer': return 'Réponse unique';
+      case 'selection': return 'Sélection multiple';
+      default: return type;
+    }
+  }
+
+  // Relations
+  Quiz? quiz;
 
   Question({
-    this.id,
-    required this.quizId,
+    String? id,
+    this.quizId,
     required this.questionText,
-    required this.questionType,
+    required String questionType,
     required this.answer,
-    this.points = 1,
-    this.choices,
-    required this.createdAt,
-    required String text,
-  });
+    required this.points,
+    DateTime? createdAt,
+    this.quiz,
+    List<String>? choices,
+  })  :
+        this.id = id ?? const Uuid().v4(),
+        this.questionType = questionType.toLowerCase(),
+        this.createdAt = createdAt ?? DateTime.now(),
+        this.choices = choices ?? [] {
+    if (!validTypes.contains(this.questionType)) {
+      throw ArgumentError('Type de question invalide: $questionType. Les types valides sont: $validTypes');
+    }
+  }
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'quiz_id': quizId,
+      'question_text': questionText,
+      'question_type': questionType,
+      'answer': answer,
+      'points': points,
+      'choices': choices,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
 
   factory Question.fromJson(Map<String, dynamic> json) {
     return Question(
@@ -27,24 +69,9 @@ class Question {
       questionText: json['question_text'],
       questionType: json['question_type'],
       answer: json['answer'],
-      points: json['points'] ?? 1,
-      choices: json['choices'] != null
-          ? List<Map<String, dynamic>>.from(json['choices'])
-          : null,
+      points: json['points'],
+      choices: List<String>.from(json['choices'] ?? []),
       createdAt: DateTime.parse(json['created_at']),
-      text: '',
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'quiz_id': quizId,
-      'question_text': questionText,
-      'question_type': questionType,
-      'answer': answer,
-      'points': points,
-      if (choices != null) 'choices': choices,
-    };
   }
 }

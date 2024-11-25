@@ -1,12 +1,15 @@
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
+import '../../services/student_service.dart';
 
 class CourseStudentsScreen extends StatefulWidget {
   final String courseName;
+  final String courseId;
 
   const CourseStudentsScreen({
     Key? key,
     required this.courseName,
+    required this.courseId,
   }) : super(key: key);
 
   @override
@@ -14,120 +17,67 @@ class CourseStudentsScreen extends StatefulWidget {
 }
 
 class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
-  final List<Map<String, String>> _students = [
-    {
-      'name': 'Ouedraogo Alice',
-      'image': 'assets/images/student1.jpg',
-    },
-    {
-      'name': 'Sawadogo Angelna',
-      'image': 'assets/images/student2.jpg',
-    },
-    {
-      'name': 'Ky Alexandre',
-      'image': 'assets/images/student3.jpg',
-    },
-  ];
-
-  // Liste des élèves disponibles (non inscrits au cours)
-  final List<Map<String, String>> _allAvailableStudents = [
-    {
-      'id': '1',
-      'name': 'Kabore Jean',
-    },
-    {
-      'id': '2',
-      'name': 'Zoungrana Marie',
-    },
-    {
-      'id': '3',
-      'name': 'Ouedraogo Paul',
-    },
-    {
-      'id': '4',
-      'name': 'Bambara Sophie',
-    },
-    {
-      'id': '5',
-      'name': 'Diallo Omar',
-    },
-  ];
-
-  List<Map<String, String>> _filteredStudents = [];
+  final StudentService _studentService = StudentService();
+  List<Map<String, dynamic>> _enrolledStudents = [];
+  List<Map<String, dynamic>> _availableStudents = [];
+  List<Map<String, dynamic>> _filteredStudents = [];
   final TextEditingController _searchController = TextEditingController();
+  bool _isLoading = false;
 
   @override
   void initState() {
     super.initState();
-    _filteredStudents = List.from(_allAvailableStudents);
+    _loadStudents();
+  }
+
+  Future<void> _loadStudents() async {
+    setState(() => _isLoading = true);
+    try {
+      final enrolled = await _studentService.getEnrolledStudents(widget.courseId);
+      final available = await _studentService.getAvailableStudents(widget.courseId);
+      if (mounted) {
+        setState(() {
+        _enrolledStudents = enrolled;
+        _availableStudents = available;
+        _filteredStudents = available;
+      });
+      }
+      
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+      }
+      
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      
+    }
   }
 
   void _filterStudents(String query) {
     setState(() {
-      _filteredStudents = _allAvailableStudents
-          .where((student) =>
-              student['name']!.toLowerCase().contains(query.toLowerCase()))
+      _filteredStudents = _availableStudents
+          .where((student) => 
+              student['user']['name'].toString().toLowerCase()
+                  .contains(query.toLowerCase()))
           .toList();
     });
-  }
-
-  Future<void> _confirmDelete(Map<String, String> student) async {
-    return showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          title: const Text('Confirmer la suppression'),
-          content: Text(
-            'Voulez-vous vraiment retirer ${student['name']} de ce cours ?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text('Annuler'),
-              style: TextButton.styleFrom(
-                foregroundColor: Colors.grey,
-              ),
-            ),
-            ElevatedButton(
-              onPressed: () {
-                setState(() {
-                  _students.remove(student);
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Élève retiré avec succès'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8),
-                ),
-              ),
-              child: const Text('Retirer'),
-            ),
-          ],
-        );
-      },
-    );
   }
 
   void _showAddStudentModal() {
     String? selectedStudentId;
     _searchController.clear();
-    _filteredStudents = List.from(_allAvailableStudents);
+    _filteredStudents = List.from(_availableStudents);
 
     showDialog(
       context: context,
       builder: (BuildContext context) {
         return StatefulBuilder(
-          builder: (context, setState) {
+          builder: (context, setDialogState) {
             return Dialog(
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(20),
@@ -155,7 +105,6 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
                       ],
                     ),
                     const SizedBox(height: 20),
-                    // Champ de recherche
                     TextField(
                       controller: _searchController,
                       decoration: InputDecoration(
@@ -169,7 +118,7 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
                         fillColor: Colors.grey[100],
                       ),
                       onChanged: (value) {
-                        setState(() {
+                        setDialogState(() {
                           _filterStudents(value);
                         });
                       },
@@ -184,21 +133,22 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
                       ),
                       child: DropdownButtonHideUnderline(
                         child: DropdownButton<String>(
-                          isExpanded: true,
-                          hint: const Text('Sélectionner un élève'),
-                          value: selectedStudentId,
-                          items: _filteredStudents.map((student) {
-                            return DropdownMenuItem(
-                              value: student['id'],
-                              child: Text(student['name']!),
-                            );
-                          }).toList(),
-                          onChanged: (value) {
-                            setState(() {
-                              selectedStudentId = value;
-                            });
-                          },
-                        ),
+  isExpanded: true,
+  hint: const Text('Sélectionner un élève'),
+  value: selectedStudentId,
+  items: _filteredStudents.map((student) {
+    // Correction du typage pour accéder aux données correctement
+    return DropdownMenuItem<String>(
+      value: student['id'].toString(), // Convertir en String si nécessaire
+      child: Text(student['user']['name'] as String),
+    );
+  }).toList(),
+  onChanged: (value) {
+    setDialogState(() {
+      selectedStudentId = value;
+    });
+  },
+),
                       ),
                     ),
                     const SizedBox(height: 20),
@@ -207,39 +157,9 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
                       child: ElevatedButton(
                         onPressed: selectedStudentId == null
                             ? null
-                            : () {
-                                // Vérifier si l'élève est déjà inscrit
-                                final selectedStudent =
-                                    _allAvailableStudents.firstWhere(
-                                        (s) => s['id'] == selectedStudentId);
-                                final isAlreadyEnrolled = _students.any((s) =>
-                                    s['name'] == selectedStudent['name']);
-
-                                if (isAlreadyEnrolled) {
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                          'Cet élève est déjà inscrit au cours'),
-                                      backgroundColor: Colors.red,
-                                    ),
-                                  );
-                                } else {
-                                  setState(() {
-                                    _students.add({
-                                      'name': selectedStudent['name']!,
-                                      'image':
-                                          'assets/images/default_avatar.jpg',
-                                    });
-                                  });
-                                  Navigator.pop(context);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text('Élève ajouté avec succès'),
-                                      backgroundColor: Colors.green,
-                                    ),
-                                  );
-                                }
+                            : () async {
+                                Navigator.pop(context);
+                                await _addStudent(selectedStudentId!);
                               },
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.green,
@@ -276,9 +196,9 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
           icon: const Icon(Icons.arrow_back, color: Colors.black),
           onPressed: () => Navigator.pop(context),
         ),
-        title: const Text(
-          'Liste des élèves inscrits au cours',
-          style: TextStyle(
+        title: Text(
+          'Élèves - ${widget.courseName}',
+          style: const TextStyle(
             color: Colors.black,
             fontSize: 20,
             fontWeight: FontWeight.bold,
@@ -287,104 +207,182 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
         backgroundColor: Colors.transparent,
         elevation: 0,
       ),
-      body: Column(
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(20),
-            child: ElevatedButton(
-              onPressed: _showAddStudentModal,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(30),
-                ),
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: const [
-                  Text(
-                    'Ajouter un élève',
-                    style: TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.bold,
+      body: _isLoading 
+          ? const Center(child: CircularProgressIndicator())
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.all(20),
+                  child: ElevatedButton(
+                    onPressed: _showAddStudentModal,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green,
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(30),
+                      ),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 20,
+                        vertical: 12,
+                      ),
                     ),
-                  ),
-                  SizedBox(width: 8),
-                  Icon(Icons.add),
-                ],
-              ),
-            ),
-          ),
-          Expanded(
-            child: _students.isEmpty
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Icon(
-                          Icons.people_outline,
-                          size: 64,
-                          color: Colors.grey[400],
-                        ),
-                        const SizedBox(height: 16),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: const [
                         Text(
-                          'Aucun élève inscrit',
+                          'Ajouter un élève',
                           style: TextStyle(
-                            color: Colors.grey[600],
                             fontSize: 16,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
+                        SizedBox(width: 8),
+                        Icon(Icons.add),
                       ],
                     ),
-                  )
-                : ListView.builder(
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                    itemCount: _students.length,
-                    itemBuilder: (context, index) {
-                      final student = _students[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(15),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withOpacity(0.05),
-                              blurRadius: 10,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        child: ListTile(
-                          contentPadding: const EdgeInsets.all(12),
-                          leading: CircleAvatar(
-                            radius: 30,
-                            backgroundImage: AssetImage(student['image']!),
-                          ),
-                          title: Text(
-                            student['name']!,
-                            style: const TextStyle(
-                              fontWeight: FontWeight.bold,
-                              fontSize: 16,
-                            ),
-                          ),
-                          trailing: IconButton(
-                            icon: const Icon(
-                              Icons.remove_circle_outline,
-                              color: Colors.red,
-                            ),
-                            onPressed: () => _confirmDelete(student),
-                          ),
-                        ),
-                      );
-                    },
                   ),
+                ),
+                Expanded(
+                  child: _enrolledStudents.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.people_outline,
+                                size: 64,
+                                color: Colors.grey[400],
+                              ),
+                              const SizedBox(height: 16),
+                              Text(
+                                'Aucun élève inscrit',
+                                style: TextStyle(
+                                  color: Colors.grey[600],
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.symmetric(horizontal: 20),
+                          itemCount: _enrolledStudents.length,
+                          itemBuilder: (context, index) {
+                            final enrollment = _enrolledStudents[index];
+                            final student = enrollment['student']['user'];
+                            return Container(
+                              margin: const EdgeInsets.only(bottom: 12),
+                              decoration: BoxDecoration(
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(15),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Colors.black.withOpacity(0.05),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 2),
+                                  ),
+                                ],
+                              ),
+                              child: ListTile(
+                                leading: CircleAvatar(
+                                  backgroundColor: Colors.blue.shade100,
+                                  child: Text(
+                                    student['name'][0].toUpperCase(),
+                                    style: const TextStyle(
+                                      color: Colors.blue,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                title: Text(
+                                  student['name'],
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                trailing: IconButton(
+                                  icon: const Icon(
+                                    Icons.remove_circle_outline,
+                                    color: Colors.red,
+                                  ),
+                                  onPressed: () => _confirmDelete(enrollment),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
+            ),
+    );
+  }
+
+  Future<void> _confirmDelete(Map<String, dynamic> enrollment) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (BuildContext context) => AlertDialog(
+        title: const Text('Confirmer la suppression'),
+        content: Text(
+          'Voulez-vous vraiment retirer ${enrollment['student']['user']['name']} de ce cours ?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
+            child: const Text('Retirer'),
           ),
         ],
       ),
     );
+
+    if (confirm == true) {
+      try {
+        await _studentService.unenrollStudent(
+          widget.courseId,
+          enrollment['student']['id'],
+        );
+        await _loadStudents();
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Élève retiré avec succès'),
+              backgroundColor: Colors.green,
+            ),
+          );
+        }
+      } catch (e) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Erreur: $e'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      }
+    }
+  }
+
+  Future<void> _addStudent(String studentId) async {
+    try {
+      await _studentService.enrollStudent(widget.courseId, studentId);
+      await _loadStudents();
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Élève ajouté avec succès'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Erreur: $e')),
+      );
+    }
   }
 
   @override

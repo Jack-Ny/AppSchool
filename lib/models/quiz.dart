@@ -1,28 +1,51 @@
-import 'package:app_school/models/question.dart';
+import 'package:uuid/uuid.dart';
+
+import 'module.dart';
+import 'question.dart';
+import 'quiz_attempt.dart';
 
 class Quiz {
-  final String? id;
-  final String moduleId;
-  final String title;
-  final int timeLimit;
-  final String timeUnit;
-  final int passingScore;
-  final bool isActive;
-  final DateTime createdAt;
-  late final List<Question>? questions;
-  final List description;
+  String id;
+  String? moduleId;
+  String title;
+  int timeLimit;
+  String timeUnit;
+  int passingScore;
+  bool isActive;
+  DateTime createdAt;
 
-  Quiz(
-      {this.id,
-      required this.moduleId,
-      required this.title,
-      required this.timeLimit,
-      required this.timeUnit,
-      this.passingScore = 75,
-      this.isActive = true,
-      required this.createdAt,
-      this.questions,
-      required this.description});
+  // Relations
+  Module? module;
+  List<Question> questions;
+  List<QuizAttempt> attempts;
+
+  Quiz({
+    String? id,
+    this.moduleId,
+    required this.title,
+    required this.timeLimit,
+    required this.timeUnit,
+    this.passingScore = 75,
+    this.isActive = true,
+    DateTime? createdAt,
+    this.module,
+    this.questions = const [],
+    this.attempts = const [],
+  })  : this.id = id ?? const Uuid().v4(),
+        this.createdAt = createdAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'module_id': moduleId,
+      'title': title,
+      'time_limit': timeLimit,
+      'time_unit': timeUnit,
+      'passing_score': passingScore,
+      'is_active': isActive,
+      'created_at': createdAt.toIso8601String(),
+    };
+  }
 
   factory Quiz.fromJson(Map<String, dynamic> json) {
     return Quiz(
@@ -34,7 +57,6 @@ class Quiz {
       passingScore: json['passing_score'] ?? 75,
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
-      description: json['list'],
     );
   }
 }

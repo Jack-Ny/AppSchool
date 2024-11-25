@@ -1,41 +1,62 @@
+import 'package:uuid/uuid.dart';
+
+import 'module.dart';
+import 'student.dart';
+import 'teacher.dart';
+import 'user.dart';
+
 class Course {
-  final String? id;
-  final String name;
-  final String description;
-  final String createdBy;
-  final bool isActive;
-  final DateTime createdAt;
-  final DateTime updatedAt;
+  String id;
+  String name;
+  String? description;
+  String? createdBy;
+  DateTime createdAt;
+  DateTime updatedAt;
+  bool isActive;
+
+  // Relations
+  List<Module> modules;
+  List<Student> enrolledStudents;
+  List<Teacher> teachers;
+  AppUser? creator;
 
   Course({
-    this.id,
+    String? id,
     required this.name,
-    required this.description,
-    required this.createdBy,
+    this.description,
+    this.createdBy,
+    DateTime? createdAt,
+    DateTime? updatedAt,
     this.isActive = true,
-    required this.createdAt,
-    required this.updatedAt,
-  });
+    this.modules = const [],
+    this.enrolledStudents = const [],
+    this.teachers = const [],
+    this.creator,
+  })  : this.id = id ?? const Uuid().v4(),
+        this.createdAt = createdAt ?? DateTime.now(),
+        this.updatedAt = updatedAt ?? DateTime.now();
+
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'name': name,
+      'description': description,
+      'created_by': createdBy,
+      'created_at': createdAt.toIso8601String(),
+      'updated_at': updatedAt.toIso8601String(),
+      'is_active': isActive,
+    };
+  }
 
   factory Course.fromJson(Map<String, dynamic> json) {
     return Course(
       id: json['id'],
       name: json['name'],
-      description: json['description'] ?? '',
+      description: json['description'],
       createdBy: json['created_by'],
-      isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
       updatedAt: DateTime.parse(json['updated_at']),
+      isActive: json['is_active'] ?? true,
     );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      if (id != null) 'id': id,
-      'name': name,
-      'description': description,
-      'created_by': createdBy,
-      'is_active': isActive,
-    };
   }
 }

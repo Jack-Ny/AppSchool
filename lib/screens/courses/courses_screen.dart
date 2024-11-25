@@ -244,8 +244,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
   }
 
   Widget _buildCourseCard(Map<String, dynamic> course) {
-    final teacherData = course['teacher_courses']?[0]?['teacher']?['user'];
-    final enrollmentsCount = course['enrollments']?.length ?? 0;
+    final teacherData = course['teacher_courses']?.isNotEmpty == true
+        ? course['teacher_courses'][0]['teacher']['user']
+        : null;
+    final enrollmentsCount = (course['enrollments'] as List?)?.isNotEmpty == true
+        ? course['enrollments'][0]['count']
+        : 0;
 
     return Container(
       margin: const EdgeInsets.only(bottom: 15),
@@ -311,15 +315,18 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   children: [
                     InkWell(
                       onTap: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => CourseStudentsScreen(
-                              courseName: course['name'],
-                            ),
-                          ),
-                        );
-                      },
+                if (course['id'] != null) {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => CourseStudentsScreen(
+                        courseName: course['name'] ?? 'Sans nom',
+                        courseId: course['id'].toString(),
+                      ),
+                    ),
+                  );
+                }
+              },
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 12,
@@ -536,12 +543,12 @@ class _CoursesScreenState extends State<CoursesScreen> {
           ElevatedButton(
             onPressed: () async {
               try {
-                await _courseService.updateCourse(
-                  courseId: course['id'],
-                  title: nameController.text,
-                  category: categoryController.text,
-                  description: descriptionController.text,
-                );
+                // await _courseService.updateCourseS(
+                //   courseId: course['id'],
+                //   title: nameController.text,
+                //   category: categoryController.text,
+                //   description: descriptionController.text,
+                // );
 
                 if (!mounted) return;
                 Navigator.pop(context);

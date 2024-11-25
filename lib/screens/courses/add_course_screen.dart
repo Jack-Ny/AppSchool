@@ -1,45 +1,15 @@
-import 'package:app_school/config/supabase_config.dart';
+import 'dart:io';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
+import 'package:file_picker/file_picker.dart';
+import 'package:uuid/uuid.dart';
+
 import '../../models/module.dart';
+import '../../models/question.dart';
 import '../../models/quiz.dart';
 import '../../models/tp.dart';
-import '../../models/question.dart';
 import '../../services/course_service.dart';
+import '../../services/user_service.dart';
 
-class ModuleFormData {
-  final TextEditingController nameController;
-  final TextEditingController? descriptionController;
-  final List<Quiz> quizzes;
-  final List<TP> tps;
-
-  ModuleFormData({
-    required this.nameController,
-    this.descriptionController,
-    this.quizzes = const [],
-    this.tps = const [],
-  });
-}
-
-class QuestionFormData {
-  final TextEditingController questionController;
-  final List<Answer> answers;
-
-  QuestionFormData({
-    required this.questionController,
-    this.answers = const [],
-  });
-}
-
-class Answer {
-  final String text;
-  bool isCorrect;
-
-  Answer({
-    required this.text,
-    this.isCorrect = false,
-  });
-}
 
 class AddCourseScreen extends StatefulWidget {
   const AddCourseScreen({Key? key}) : super(key: key);
@@ -49,711 +19,863 @@ class AddCourseScreen extends StatefulWidget {
 }
 
 class _AddCourseScreenState extends State<AddCourseScreen> {
-  final _courseNameController = TextEditingController();
-  final _courseDescriptionController = TextEditingController();
-  final _courseService = CourseService();
-  final List<ModuleFormData> _modules = [];
-  bool _isLoading = false;
-  int _currentStep = 0;
   final _formKey = GlobalKey<FormState>();
-
-  // Validation des champs avant l'ajout du cours
-  bool get _isFormValid {
-    return _courseNameController.text.isNotEmpty &&
-        _courseDescriptionController.text.isNotEmpty;
-  }
-
-  void _removeQuiz(ModuleFormData moduleData, Quiz quiz) {
-    setState(() {
-      moduleData.quizzes.remove(quiz);
-    });
-  }
-
-  void _removeTP(ModuleFormData moduleData, TP tp) {
-    setState(() {
-      moduleData.tps.remove(tp);
-    });
-  }
-
-  // Sauvegarde du cours avec validation
-  Future<void> _saveCourse() async {
-    // if (!_isFormValid) {
-    //   ScaffoldMessenger.of(context).showSnackBar(
-    //     const SnackBar(content: Text('Veuillez remplir tous les champs')),
-    //   );
-    //   return;
-    // }
-    if(!_formKey.currentState!.validate()) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-
-      final userId = SupabaseConfig.client.auth.currentUser?.id;
-      if (userId == null) throw Exception('Utilisateur non connecté');
-
-      final modulesJson = _modules.map((moduleData) {
-        return Module(
-          name: moduleData.nameController.text,
-          description: moduleData.descriptionController?.text,
-          courseId: '', // CourseId à renseigner lors de la création finale
-          createdAt: DateTime.now(),
-          updatedAt: DateTime.now(),
-          quizzes: moduleData.quizzes,
-          tps: moduleData.tps,
-        ).toJson(); // Sérialisation ici
-      }).toList();
-
-      await _courseService.createCourseWithModules(
-        name: _courseNameController.text,
-        description: _courseDescriptionController.text,
-        modules: modulesJson, // On envoie maintenant des Map<String, dynamic>
-        createdBy: '', // Cette partie à remplir si nécessaire
-      );
-
-      if (!mounted) return;
-      
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cours créé avec succès'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      Navigator.pop(context);
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Erreur: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isLoading = false);
-    }
-  }
+  final CourseService _courseService = CourseService();
+  final UserService _userService = UserService();
+  
+  String _courseName = '';
+  String _courseDescription = '';
+  List<Module> _modules = [];
+  bool _isLoading = false;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Créer un nouveau cours'),
-        centerTitle: true,
-        elevation: 0,
+        title: const Text('Ajouter un cours'),
+        actions: [
+          TextButton(
+            onPressed: _isLoading ? null : _saveCourse,
+            child: const Text('Enregistrer'),
+          ),
+        ],
       ),
       body: Form(
         key: _formKey,
-        child: Stepper(
-          type: StepperType.vertical,
-          currentStep: _currentStep,
-          onStepContinue: () {
-            if (_currentStep < 2) {
-              setState(() => _currentStep++);
-            } else {
-              _saveCourse();
-            }
-          },
-          onStepCancel: () {
-            if (_currentStep > 0) {
-              setState(() => _currentStep--);
-            }
-          },
-          controlsBuilder: (context, details) {
-            return Padding(
-              padding: const EdgeInsets.only(top: 20.0),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: _isLoading ? null : details.onStepContinue,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.all(16),
-                        backgroundColor: Theme.of(context).primaryColor,
-                      ),
-                      child: Text(
-                        _currentStep == 2 ? 'Créer le cours' : 'Continuer',
-                        style: const TextStyle(fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  if (_currentStep > 0) ...[
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: OutlinedButton(
-                        onPressed: details.onStepCancel,
-                        style: OutlinedButton.styleFrom(
-                          padding: const EdgeInsets.all(16),
-                        ),
-                        child: const Text(
-                          'Retour',
-                          style: TextStyle(fontSize: 16),
-                        ),
-                      ),
-                    ),
-                  ],
-                ],
-              ),
-            );
-          },
-          steps: [
-            Step(
-              title: const Text('Informations générales'),
-              content: _buildCourseInfoStep(),
-              isActive: _currentStep >= 0,
-            ),
-            Step(
-              title: const Text('Modules'),
-              content: _buildModulesStep(),
-              isActive: _currentStep >= 1,
-            ),
-            Step(
-              title: const Text('Contenu des modules'),
-              content: _buildModuleContentStep(),
-              isActive: _currentStep >= 2,
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // widget creation de cours
-  Widget _buildCourseInfoStep() {
-    return Column(
-      children: [
-        TextFormField(
-          controller: _courseNameController,
-          decoration: InputDecoration(
-            labelText: 'Nom du cours',
-            hintText: 'Ex: Introduction à Flutter',
-            prefixIcon: const Icon(Icons.school),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          validator: (value) {
-            if (value?.isEmpty ?? true) {
-              return 'Le nom du cours est requis';
-            }
-            return null;
-          },
-        ),
-        const SizedBox(height: 20),
-        TextFormField(
-          controller: _courseDescriptionController,
-          maxLines: 4,
-          decoration: InputDecoration(
-            labelText: 'Description du cours',
-            hintText: 'Décrivez le contenu et les objectifs du cours...',
-            prefixIcon: const Icon(Icons.description),
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-          // validator: (value) {
-          //   if (value?.isEmpty ?? true) {
-          //     return 'La description est requise';
-          //   }
-          //   return null;
-          // },
-        ),
-      ],
-    );
-  }
-
-  // widget creation de module
-  Widget _buildModulesStep() {
-    return Column(
-      children: [
-        ..._modules.asMap().entries.map((entry) => _buildModuleCard(entry.key)),
-        const SizedBox(height: 16),
-        OutlinedButton.icon(
-          onPressed: _addModule,
-          icon: const Icon(Icons.add),
-          label: const Text('Ajouter un module'),
-          style: OutlinedButton.styleFrom(
-            padding: const EdgeInsets.all(16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // widget carte creation de module
-  Widget _buildModuleCard(int index) {
-    final module = _modules[index];
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: ExpansionTile(
-        title: Text('Module ${index + 1}'),
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                TextFormField(
-                  controller: module.nameController,
-                  decoration: InputDecoration(
-                    labelText: 'Nom du module',
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
-                ),
-                if (module.descriptionController != null) ...[
-                  const SizedBox(height: 16),
-                  TextFormField(
-                    controller: module.descriptionController!,
-                    maxLines: 3,
-                    decoration: InputDecoration(
-                      labelText: 'Description du module',
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                    ),
-                  ),
-                ],
-                const SizedBox(height: 16),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    TextButton.icon(
-                      onPressed: () => _removeModule(index),
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      label: const Text(
-                        'Supprimer',
-                        style: TextStyle(color: Colors.red),
-                      ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // widget creation de module contenu
-  Widget _buildModuleContentStep() {
-    return Column(
-      children: _modules.asMap().entries.map((entry) {
-        final moduleIndex = entry.key;
-        final module = entry.value;
-        return Card(
-          margin: const EdgeInsets.only(bottom: 16),
-          child: ExpansionTile(
-            title: Text(module.nameController.text.isEmpty
-                ? 'Module ${moduleIndex + 1}'
-                : module.nameController.text),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    _buildQuizSection(module),
-                    const SizedBox(height: 16),
-                    _buildTPSection(module),
-                  ],
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Nom du cours',
+                  border: OutlineInputBorder(),
                 ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer un nom';
+                  }
+                  return null;
+                },
+                onChanged: (value) => _courseName = value,
+              ),
+              const SizedBox(height: 16),
+              TextFormField(
+                decoration: const InputDecoration(
+                  labelText: 'Description du cours',
+                  border: OutlineInputBorder(),
+                ),
+                maxLines: 3,
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Veuillez entrer une description';
+                  }
+                  return null;
+                },
+                onChanged: (value) => _courseDescription = value,
+              ),
+              const SizedBox(height: 24),
+              Text('Modules', style: Theme.of(context).textTheme.titleLarge),
+              ..._buildModulesList(),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _addModule,
+                child: const Text('Ajouter un module'),
               ),
             ],
           ),
-        );
-      }).toList(),
-    );
-  }
-
-  // Section des quizzes
-  Widget _buildQuizSection(ModuleFormData module) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.blue.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Quiz',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle),
-                onPressed: () => _showQuizDialog(module),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: module.quizzes.map((quiz) {
-              return Chip(
-                label: Text(quiz.title),
-                deleteIcon: const Icon(Icons.close, size: 18),
-                onDeleted: () => _removeQuiz(module, quiz),
-              );
-            }).toList(),
-          ),
-        ],
+        ),
       ),
     );
   }
 
-  // Section des TPs
-  Widget _buildTPSection(ModuleFormData module) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: Colors.orange.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Travaux Pratiques',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              IconButton(
-                icon: const Icon(Icons.add_circle),
-                onPressed: () => _showTPDialog(module),
-              ),
-            ],
-          ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            children: module.tps.map((tp) {
-              return Chip(
-                label: Text(tp.title),
-                deleteIcon: const Icon(Icons.close, size: 18),
-                onDeleted: () => _removeTP(module, tp),
-              );
-            }).toList(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Ajout d'un module
-
-  // Bouton d'enregistrement
-
-  // Ajouter un module
   void _addModule() {
     setState(() {
-      _modules.add(ModuleFormData(
-        nameController: TextEditingController(),
-        descriptionController: TextEditingController(),
+      _modules.add(Module(
+        id: const Uuid().v4(),
+        name: '',
+        description: '',
+        orderIndex: _modules.length + 1,
+        isActive: true,
         quizzes: [],
         tps: [],
       ));
     });
   }
 
-  // suppresion module
-  void _removeModule(int index) {
-    setState(() {
-      _modules.removeAt(index);
-    });
+  List<Widget> _buildModulesList() {
+    return _modules.asMap().entries.map((entry) {
+      final module = entry.value;
+      return Card(
+        margin: const EdgeInsets.symmetric(vertical: 8),
+        child: ExpansionTile(
+          title: TextFormField(
+            initialValue: module.name,
+            decoration: const InputDecoration(
+              labelText: 'Nom du module',
+              border: InputBorder.none,
+            ),
+            onChanged: (value) {
+              setState(() {
+                module.name = value;
+              });
+            },
+          ),
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  TextFormField(
+                    initialValue: module.description,
+                    decoration: const InputDecoration(
+                      labelText: 'Description du module',
+                      border: OutlineInputBorder(),
+                    ),
+                    maxLines: 3,
+                    onChanged: (value) {
+                      setState(() {
+                        module.description = value;
+                      });
+                    },
+                  ),
+                  const SizedBox(height: 16),
+                  _buildQuizSection(module),
+                  const SizedBox(height: 16),
+                  _buildTPSection(module),
+                ],
+              ),
+            ),
+          ],
+        ),
+      );
+    }).toList();
   }
 
-  // Dialogue pour ajouter un quiz
-  void _showQuizDialog(ModuleFormData moduleData) {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final List<QuestionFormData> questions = [];
+  Widget _buildQuizSection(Module module) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('Quiz', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ...module.quizzes.map((quiz) => QuizCard(
+          quiz: quiz,
+          onDelete: () {
+            setState(() {
+              module.quizzes.remove(quiz);
+            });
+          },
+        )),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              module.quizzes.add(Quiz(
+                title: '',
+                timeLimit: 30,
+                timeUnit: 'minutes',
+                passingScore: 60,
+                isActive: true,
+                questions: [],
+              ));
+            });
+          },
+          child: const Text('Ajouter un quiz'),
+        ),
+      ],
+    );
+  }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
+  Widget _buildTPSection(Module module) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text('TPs', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        ...module.tps.map((tp) => TPCard(
+          tp: tp,
+          onDelete: () {
+            setState(() {
+              module.tps.remove(tp);
+            });
+          },
+        )),
+        TextButton(
+          onPressed: () {
+            setState(() {
+              module.tps.add(TP(
+                title: '',
+                description: '',
+                isActive: true,
+              ));
+            });
+          },
+          child: const Text('Ajouter un TP'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _saveCourse() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      final userId = await _userService.getCurrentUserId();
+      final courseId = const Uuid().v4();
+
+      
+    for (var module in _modules) {
+      module.id = const Uuid().v4();
+      module.courseId = courseId;
+
+      // Mettre à jour les IDs des quiz
+      for (var quiz in module.quizzes) {
+        quiz.id = const Uuid().v4();
+        quiz.moduleId = module.id;
+
+        // Mettre à jour les IDs des questions
+        for (var question in quiz.questions) {
+          question.id = const Uuid().v4();
+          question.quizId = quiz.id;
+        }
+      }
+
+      // Mettre à jour les IDs des TPs
+      for (var tp in module.tps) {
+        tp.id = const Uuid().v4();
+        tp.moduleId = module.id;
+      }
+    }
+
+      await _courseService.createCourseWithModules(
+        name: _courseName,
+        description: _courseDescription,
+        createdBy: userId,
+        modules: _modules,
+      );
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+        content: Text(
+          'Cours créé avec succès',
+          style: TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.green,
+        duration: Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
       ),
-      builder: (context) => StatefulBuilder(
-        builder: (context, setState) => Container(
-          padding: EdgeInsets.only(
-            bottom: MediaQuery.of(context).viewInsets.bottom,
-            left: 20,
-            right: 20,
-            top: 20,
-          ),
-          child: SingleChildScrollView(
+      );
+
+      Navigator.of(context).pop(true);
+
+    } catch (e) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+        content: Text(
+          'Erreur: $e',
+          style: const TextStyle(color: Colors.white),
+        ),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 3),
+        behavior: SnackBarBehavior.floating,
+      ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+      
+    }
+  }
+}
+
+class QuizCard extends StatefulWidget {
+  final Quiz quiz;
+  final VoidCallback onDelete;
+
+  const QuizCard({
+    Key? key,
+    required this.quiz,
+    required this.onDelete,
+  }) : super(key: key);
+
+  @override
+  State<QuizCard> createState() => _QuizCardState();
+}
+
+class _QuizCardState extends State<QuizCard> {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 2,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      child: ExpansionTile(
+        title: Text(widget.quiz.title.isEmpty ? 'Nouveau Quiz' : widget.quiz.title),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
             child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                TextField(
-                  controller: titleController,
+                TextFormField(
+                  initialValue: widget.quiz.title,
                   decoration: const InputDecoration(
                     labelText: 'Titre du quiz',
                     border: OutlineInputBorder(),
                   ),
+                  onChanged: (value) => setState(() => widget.quiz.title = value),
                 ),
                 const SizedBox(height: 16),
-                TextField(
-                  controller: descriptionController,
-                  maxLines: 3,
-                  decoration: const InputDecoration(
-                    labelText: 'Description',
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                ...questions
-                    .map((question) => _buildQuestionCard(question, setState)),
-                ElevatedButton.icon(
-                  onPressed: () {
-                    setState(() {
-                      questions.add(QuestionFormData(
-                        questionController: TextEditingController(),
-                        answers: [],
-                      ));
-                    });
-                  },
-                  icon: const Icon(Icons.add),
-                  label: const Text('Ajouter une question'),
-                ),
-                const SizedBox(height: 16),
-                ElevatedButton(
-                  onPressed: () {
-                    if (titleController.text.isEmpty || questions.isEmpty) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Veuillez remplir tous les champs'),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: widget.quiz.timeLimit?.toString(),
+                        decoration: const InputDecoration(
+                          labelText: 'Temps limite',
+                          border: OutlineInputBorder(),
                         ),
-                      );
-                      return;
-                    }
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) => setState(() => 
+                          widget.quiz.timeLimit = int.tryParse(value)!
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: widget.quiz.passingScore?.toString(),
+                        decoration: const InputDecoration(
+                          labelText: 'Score minimum (%)',
+                          border: OutlineInputBorder(),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) => setState(() =>
+                          widget.quiz.passingScore = int.tryParse(value)!
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                _buildQuestionsSection(),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
 
-                    final quiz = Quiz(
-                      title: titleController.text,
-                      description: [_courseDescriptionController.text],
-                      questions: questions
-                          .map((q) => Question(
-                                quizId: '',
-                                questionText: q.questionController.text,
-                                questionType:
-                                    'text', // Exemple de type de question
-                                answer: '',
-                                createdAt: DateTime.now(),
-                                text: '',
-                              ))
-                          .toList(),
-                      moduleId: '',
-                      timeLimit: 0,
-                      timeUnit: '',
-                      createdAt: DateTime.now(),
-                    );
+  Widget _buildQuestionsSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            Text(
+              'Questions',
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            FilledButton.icon(
+              onPressed: _addQuestion,
+              icon: const Icon(Icons.add),
+              label: const Text('Ajouter'),
+            ),
+          ],
+        ),
+        const SizedBox(height: 8),
+        ...widget.quiz.questions.map((question) => QuestionCard(
+          question: question,
+          onDelete: () => setState(() {
+            widget.quiz.questions.remove(question);
+          }),
+        )),
+      ],
+    );
+  }
 
-                    moduleData.quizzes.add(quiz);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Enregistrer le quiz'),
+  void _addQuestion() {
+    try {
+      setState(() {
+      widget.quiz.questions.add(Question(
+        id: const Uuid().v4(),
+        quizId: widget.quiz.id,
+        questionText: '',
+        questionType: 'trueFalse',
+        answer: '',
+        points: 1,
+        choices: [],
+      ));
+      print('Question ajoutée'); 
+    });
+    } catch(e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Erreur: $e')),
+    );
+    }
+    
+  }
+}
+
+class QuestionCard extends StatefulWidget {
+  final Question question;
+  final VoidCallback onDelete;
+
+  const QuestionCard({
+    Key? key,
+    required this.question,
+    required this.onDelete,
+  }) : super(key: key);
+
+  @override
+  State<QuestionCard> createState() => _QuestionCardState();
+}
+
+class _QuestionCardState extends State<QuestionCard> {
+  final List<String> questionTypes = Question.validTypes;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialiser les choix si vides pour le type selection
+    if (widget.question.questionType == 'selection' && 
+        (widget.question.choices?.isEmpty ?? true)) {
+      widget.question.choices = [''];
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.only(bottom: 16),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            _buildQuestionHeader(),
+            const SizedBox(height: 16),
+            _buildQuestionTypeAndPoints(),
+            const SizedBox(height: 24),
+            _buildAnswerSection(),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildQuestionHeader() {
+    return Row(
+      children: [
+        Expanded(
+          child: TextFormField(
+            initialValue: widget.question.questionText,
+            decoration: InputDecoration(
+              labelText: 'Question',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            maxLines: 2,
+            onChanged: (value) => setState(() {
+              widget.question.questionText = value;
+            }),
+          ),
+        ),
+        IconButton(
+          icon: const Icon(Icons.delete),
+          onPressed: widget.onDelete,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildQuestionTypeAndPoints() {
+    return Row(
+      children: [
+        Expanded(
+          flex: 2,
+          child: DropdownButtonFormField<String>(
+            value: widget.question.questionType,
+            decoration: InputDecoration(
+              labelText: 'Type de question',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            items: questionTypes.map((type) => DropdownMenuItem(
+              value: type,
+              child: Text(_getQuestionTypeLabel(type)),
+            )).toList(),
+            onChanged: _handleQuestionTypeChange,
+          ),
+        ),
+        const SizedBox(width: 16),
+        Expanded(
+          child: TextFormField(
+            initialValue: widget.question.points.toString(),
+            decoration: InputDecoration(
+              labelText: 'Points',
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(8),
+              ),
+            ),
+            keyboardType: TextInputType.number,
+            onChanged: (value) => setState(() {
+              widget.question.points = int.tryParse(value) ?? 1;
+            }),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildAnswerSection() {
+    switch (widget.question.questionType) {
+      case 'trueFalse':
+        return _buildTrueFalseSection();
+      case 'selection':
+        return _buildSelectionSection();
+      default:
+        return _buildSingleAnswerSection();
+    }
+  }
+
+  Widget _buildTrueFalseSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Réponse:', style: Theme.of(context).textTheme.titleMedium),
+        Row(
+          children: [
+            Expanded(
+              child: RadioListTile<String>(
+                title: const Text('Vrai'),
+                value: 'true',
+                groupValue: widget.question.answer,
+                onChanged: (value) => setState(() {
+                  widget.question.answer = value!;
+                }),
+              ),
+            ),
+            Expanded(
+              child: RadioListTile<String>(
+                title: const Text('Faux'),
+                value: 'false',
+                groupValue: widget.question.answer,
+                onChanged: (value) => setState(() {
+                  widget.question.answer = value!;
+                }),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _buildSelectionSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Réponses:', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        ...widget.question.choices!.asMap().entries.map(_buildChoiceItem),
+        const SizedBox(height: 8),
+        Center(
+          child: FilledButton.icon(
+            onPressed: _addChoice,
+            icon: const Icon(Icons.add),
+            label: const Text('Ajouter une réponse'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildChoiceItem(MapEntry<int, String> entry) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Checkbox(
+            value: _isChoiceSelected(entry.value),
+            onChanged: (checked) => _handleChoiceSelection(entry.value, checked),
+          ),
+          Expanded(
+            child: TextFormField(
+              initialValue: entry.value,
+              decoration: InputDecoration(
+                labelText: 'Réponse ${entry.key + 1}',
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+              ),
+              onChanged: (value) => _updateChoice(entry.key, value),
+            ),
+          ),
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed: () => _removeChoice(entry.key),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSingleAnswerSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Réponse:', style: Theme.of(context).textTheme.titleMedium),
+        const SizedBox(height: 8),
+        TextFormField(
+          initialValue: widget.question.answer,
+          decoration: InputDecoration(
+            labelText: 'Réponse attendue',
+            border: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(8),
+            ),
+          ),
+          onChanged: (value) => setState(() {
+            widget.question.answer = value;
+          }),
+        ),
+      ],
+    );
+  }
+
+  String _getQuestionTypeLabel(String type) {
+    switch (type) {
+      case 'trueFalse':
+        return 'Vrai/Faux';
+      case 'singleAnswer':
+        return 'Réponse unique';
+      case 'selection':
+        return 'Sélection multiple';
+      default:
+        return type;
+    }
+  }
+
+  void _handleQuestionTypeChange(String? value) {
+    if (value != null) {
+      setState(() {
+        widget.question.questionType = value;
+        widget.question.choices = value == 'selection' ? [''] : [];
+        widget.question.answer = '';
+      });
+    }
+  }
+
+  bool _isChoiceSelected(String choice) {
+    return widget.question.answer.split(',').contains(choice);
+  }
+
+  void _handleChoiceSelection(String choice, bool? checked) {
+    setState(() {
+      var answers = widget.question.answer.isEmpty 
+          ? [] 
+          : widget.question.answer.split(',');
+      if (checked ?? false) {
+        answers.add(choice);
+      } else {
+        answers.remove(choice);
+      }
+      widget.question.answer = answers.join(',');
+    });
+  }
+
+  void _updateChoice(int index, String value) {
+    setState(() {
+      List<String> choices = List.from(widget.question.choices ?? []);
+      choices[index] = value;
+      widget.question.choices = choices;
+    });
+  }
+
+  void _removeChoice(int index) {
+    setState(() {
+      List<String> choices = List.from(widget.question.choices ?? []);
+      choices.removeAt(index);
+      widget.question.choices = choices;
+    });
+  }
+
+  void _addChoice() {
+    setState(() {
+      List<String> choices = List.from(widget.question.choices ?? []);
+      choices.add('');
+      widget.question.choices = choices;
+    });
+  }
+}
+
+
+
+class TPCard extends StatefulWidget {
+  final TP tp;
+  final VoidCallback onDelete;
+
+  const TPCard({
+    Key? key,
+    required this.tp,
+    required this.onDelete,
+  }) : super(key: key);
+
+  @override
+  State<TPCard> createState() => _TPCardState();
+}
+
+class _TPCardState extends State<TPCard> {
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      elevation: 1,
+      margin: const EdgeInsets.symmetric(vertical: 8),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: ExpansionTile(
+        title: Text(widget.tp.title.isEmpty ? 'Nouveau TP' : widget.tp.title),
+        children: [
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                TextFormField(
+                  initialValue: widget.tp.title,
+                  decoration: InputDecoration(
+                    labelText: 'Titre du TP',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  onChanged: (value) => setState(() => widget.tp.title = value),
+                ),
+                const SizedBox(height: 16),
+                TextFormField(
+                  initialValue: widget.tp.description,
+                  decoration: InputDecoration(
+                    labelText: 'Description',
+                    border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                  ),
+                  maxLines: 3,
+                  onChanged: (value) => setState(() => widget.tp.description = value),
+                ),
+                const SizedBox(height: 16),
+                Row(
+                  children: [
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: widget.tp.maxPoints?.toString(),
+                        decoration: InputDecoration(
+                          labelText: 'Points maximum',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                        ),
+                        keyboardType: TextInputType.number,
+                        onChanged: (value) => setState(() =>
+                          widget.tp.maxPoints = int.tryParse(value)
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 16),
+                    Expanded(
+                      child: TextFormField(
+                        initialValue: widget.tp.dueDate?.toString().split(' ')[0],
+                        decoration: InputDecoration(
+                          labelText: 'Date limite',
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          suffixIcon: IconButton(
+                            icon: const Icon(Icons.calendar_today),
+                            onPressed: () async {
+                              final date = await showDatePicker(
+                                context: context,
+                                initialDate: widget.tp.dueDate ?? DateTime.now(),
+                                firstDate: DateTime.now(),
+                                lastDate: DateTime.now().add(const Duration(days: 365)),
+                              );
+                              if (date != null) {
+                                setState(() => widget.tp.dueDate = date);
+                              }
+                            },
+                          ),
+                        ),
+                        readOnly: true,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 24),
+                Card(
+                  color: Theme.of(context).colorScheme.secondaryContainer,
+                  child: Padding(
+                    padding: const EdgeInsets.all(16),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Fichiers attachés',
+                          style: Theme.of(context).textTheme.titleMedium,
+                        ),
+                        const SizedBox(height: 8),
+                        if (widget.tp.files != null && widget.tp.files!.isNotEmpty)
+                          ...widget.tp.files!.map((file) => ListTile(
+                            leading: const Icon(Icons.insert_drive_file),
+                            title: Text(file.path.split('/').last),
+                            trailing: IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () {
+                                setState(() {
+                                  widget.tp.files!.remove(file);
+                                });
+                              },
+                            ),
+                          )),
+                        const SizedBox(height: 8),
+                        Center(
+                          child: FilledButton.icon(
+                            onPressed: () async {
+                              final result = await FilePicker.platform.pickFiles(
+                                allowMultiple: true,
+                                type: FileType.any,
+                              );
+                              if (result != null) {
+                                setState(() {
+                                  widget.tp.files ??= [];
+                                  widget.tp.files!.addAll(
+                                    result.files.map((file) => File(file.path!)),
+                                  );
+                                });
+                              }
+                            },
+                            icon: const Icon(Icons.upload_file),
+                            label: const Text('Ajouter des fichiers'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                 ),
               ],
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  // Dialogue pour ajouter un TP
-  void _showTPDialog(ModuleFormData moduleData) {
-    final titleController = TextEditingController();
-    final descriptionController = TextEditingController();
-    final deadlineController = TextEditingController();
-
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(25.0)),
-      ),
-      builder: (context) => Container(
-        padding: EdgeInsets.only(
-          bottom: MediaQuery.of(context).viewInsets.bottom,
-          left: 20,
-          right: 20,
-          top: 20,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              TextField(
-                controller: titleController,
-                decoration: const InputDecoration(
-                  labelText: 'Titre du TP',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: descriptionController,
-                maxLines: 3,
-                decoration: const InputDecoration(
-                  labelText: 'Description',
-                  border: OutlineInputBorder(),
-                ),
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: deadlineController,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Date limite',
-                  border: OutlineInputBorder(),
-                  suffixIcon: Icon(Icons.calendar_today),
-                ),
-                onTap: () async {
-                  final date = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime.now().add(const Duration(days: 365)),
-                  );
-                  if (date != null) {
-                    deadlineController.text =
-                        DateFormat('yyyy-MM-dd').format(date);
-                  }
-                },
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () {
-                  if (titleController.text.isEmpty ||
-                      deadlineController.text.isEmpty) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                          content: Text('Veuillez remplir tous les champs')),
-                    );
-                    return;
-                  }
-
-                  final tp = TP(
-                    title: titleController.text,
-                    description: descriptionController.text,
-                    deadline: DateTime.parse(deadlineController.text),
-                    moduleId: '',
-                    createdAt: DateTime.now(),
-                  );
-                  moduleData.tps.add(tp);
-                  Navigator.pop(context);
-                },
-                child: const Text('Enregistrer le TP'),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  // Carte de question dans un quiz
-  Widget _buildQuestionCard(QuestionFormData question, StateSetter setState) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            TextField(
-              controller: question.questionController,
-              decoration: const InputDecoration(
-                labelText: 'Question',
-                border: OutlineInputBorder(),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...question.answers.asMap().entries.map((entry) => Row(
-                  children: [
-                    Checkbox(
-                      value: entry.value.isCorrect,
-                      onChanged: (value) {
-                        setState(() {
-                          question.answers[entry.key] = Answer(
-                            text: entry.value.text,
-                            isCorrect: value ?? false,
-                          );
-                        });
-                      },
-                    ),
-                    Expanded(
-                      child: TextField(
-                        controller:
-                            TextEditingController(text: entry.value.text),
-                        onChanged: (value) {
-                          setState(() {
-                            question.answers[entry.key] = Answer(
-                              text: value,
-                              isCorrect: entry.value.isCorrect,
-                            );
-                          });
-                        },
-                        decoration: InputDecoration(
-                          labelText: 'Réponse ${entry.key + 1}',
-                          border: const OutlineInputBorder(),
-                        ),
-                      ),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete),
-                      onPressed: () {
-                        setState(() {
-                          question.answers.removeAt(entry.key);
-                        });
-                      },
-                    ),
-                  ],
-                )),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  question.answers.add(Answer(text: '', isCorrect: false));
-                });
-              },
-              child: const Text('Ajouter une réponse'),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  question.answers.clear();
-                });
-              },
-              child: const Text('Supprimer toutes les réponses'),
-              style: TextButton.styleFrom(foregroundColor: Colors.red),
-            ),
-          ],
-        ), 
+        ],
       ),
     );
   }
