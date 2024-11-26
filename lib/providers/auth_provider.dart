@@ -11,6 +11,11 @@ class AuthProvider with ChangeNotifier {
   bool get isAuthenticated => _user != null;
   bool get isLoading => _isLoading;
 
+  void setUser(AppUser? user) {
+    _user = user;
+    notifyListeners();
+  }
+
   AuthProvider() {
     _initializeAuth();
   }

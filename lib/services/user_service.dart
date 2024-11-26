@@ -17,7 +17,7 @@ class UserService {
   }
 
 // obtenir l'utilisateur courant
-  Future<Map<String, dynamic>> getCurrentUser() async {
+  Future<AppUser> getCurrentUser() async {
     try {
       final userId = _supabase.auth.currentUser?.id;
       if (userId == null) throw Exception('Utilisateur non connecté');
@@ -199,6 +199,21 @@ class UserService {
     final user = _supabase.auth.currentUser;
     if (user == null) throw Exception('Utilisateur non connecté');
     return user.id;
+  }
+
+  // obtenir l'user par id
+  Future<Map<String, dynamic>> getUserById(String userId) async {
+    try {
+      final response = await _supabase
+          .from('users')
+          .select('*, profiles!inner(*)')
+          .eq('id', userId)
+          .single();
+
+      return response;
+    } catch (e) {
+      throw Exception('Erreur lors de la récupération des données utilisateur');
+    }
   }
 
   // Fonction utilitaire pour envoyer un email de bienvenue

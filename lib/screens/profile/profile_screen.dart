@@ -1,3 +1,4 @@
+import 'package:app_school/models/user.dart';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../../services/user_service.dart';
@@ -13,7 +14,7 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
   int _selectedIndex = 4; // Index pour la bottomNavigationBar (PROFILS)
-  Map<String, dynamic>? _userData;
+  AppUser? _userData;
   bool _loading = true;
 
   @override
@@ -31,7 +32,10 @@ class _ProfileScreenState extends State<ProfileScreen> {
       });
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Erreur de chargement du profil')),
+        const SnackBar(
+          content: Text('Erreur de chargement du profil'),
+          backgroundColor: Colors.red,
+        ),
       );
     }
   }
@@ -121,17 +125,17 @@ class _ProfileScreenState extends State<ProfileScreen> {
                   // Informations de l'utilisateur
                   _buildInfoCard(
                     title: 'Nom d\'utilisateur',
-                    value: _userData?['name'] ?? 'Non renseigné',
+                    value: _userData?.name ?? 'Non renseigné',
                     icon: Icons.person_outline,
                   ),
                   _buildInfoCard(
                     title: "Adresse mail",
-                    value: _userData?['email'] ?? 'Non renseigné',
+                    value: _userData?.email ?? 'Non renseigné',
                     icon: Icons.mail_outline,
                   ),
                   _buildInfoCard(
                     title: 'Status',
-                    value: _userData?['user_type'] ?? 'Non renseigné',
+                    value: _userData?.userType ?? 'Non renseigné',
                     icon: Icons.admin_panel_settings_outlined,
                     valueColor: Colors.grey,
                   ),
