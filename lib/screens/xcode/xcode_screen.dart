@@ -9,7 +9,7 @@ class XCodeScreen extends StatefulWidget {
 }
 
 class _XCodeScreenState extends State<XCodeScreen> {
-  int _selectedIndex = 2; // Pour la bottomNavigationBar (XCODE)
+  int _selectedIndex = 2;
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -32,6 +32,10 @@ class _XCodeScreenState extends State<XCodeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Récupérer les dimensions de l'écran
+    final screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -52,129 +56,136 @@ class _XCodeScreenState extends State<XCodeScreen> {
         elevation: 0,
       ),
       body: Center(
-        child: Container(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Icône de code avec cercle décoratif
-              Stack(
-                alignment: Alignment.center,
-                children: [
-                  Container(
-                    width: 180,
-                    height: 180,
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.1),
-                      shape: BoxShape.circle,
+        child: SingleChildScrollView(
+          child: Container(
+            padding: EdgeInsets.symmetric(
+              horizontal: screenWidth * 0.06, // Responsive padding
+              vertical: screenHeight * 0.04,
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                // Icône avec cercle décoratif
+                Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    Container(
+                      width: screenWidth * 0.45, // Adaptation taille cercle
+                      height: screenWidth * 0.45,
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withOpacity(0.1),
+                        shape: BoxShape.circle,
+                      ),
                     ),
-                  ),
-                  Container(
-                    padding: const EdgeInsets.all(32),
-                    decoration: BoxDecoration(
-                      color: AppColors.primaryBlue.withOpacity(0.15),
-                      borderRadius: BorderRadius.circular(100),
+                    Container(
+                      padding: EdgeInsets.all(screenWidth * 0.1),
+                      decoration: BoxDecoration(
+                        color: AppColors.primaryBlue.withOpacity(0.15),
+                        borderRadius: BorderRadius.circular(100),
+                      ),
+                      child: Icon(
+                        Icons.code,
+                        size: screenWidth * 0.2, // Adaptation taille icône
+                        color: AppColors.primaryBlue,
+                      ),
                     ),
-                    child: Icon(
-                      Icons.code,
-                      size: 80,
-                      color: AppColors.primaryBlue,
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 40),
-
-              // Titre principal
-              Text(
-                'En cours de conception',
-                style: TextStyle(
-                  fontSize: 28,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
+                  ],
                 ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 16),
+                SizedBox(height: screenHeight * 0.05),
 
-              // Message descriptif
-              Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 32),
-                child: Text(
-                  'Notre équipe travaille actuellement sur cette fonctionnalité pour permettre aux étudiants de coder et tester leurs programmes en temps réel.',
+                // Titre principal
+                Text(
+                  'En cours de conception',
                   style: TextStyle(
-                    fontSize: 16,
-                    color: Colors.grey[600],
-                    height: 1.5,
+                    fontSize: screenWidth * 0.07,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.grey[800],
                   ),
                   textAlign: TextAlign.center,
                 ),
-              ),
-              const SizedBox(height: 40),
+                SizedBox(height: screenHeight * 0.02),
 
-              // Badge de statut
-              Container(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: 24,
-                  vertical: 12,
-                ),
-                decoration: BoxDecoration(
-                  color: Colors.amber.withOpacity(0.2),
-                  borderRadius: BorderRadius.circular(50),
-                  border: Border.all(
-                    color: Colors.amber.withOpacity(0.3),
-                    width: 1,
+                // Message descriptif
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: screenWidth * 0.08),
+                  child: Text(
+                    'Notre équipe travaille actuellement sur cette fonctionnalité pour permettre aux étudiants de coder et tester leurs programmes en temps réel.',
+                    style: TextStyle(
+                      fontSize: screenWidth * 0.04,
+                      color: Colors.grey[600],
+                      height: 1.5,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.engineering,
-                      color: Colors.amber[700],
+                SizedBox(height: screenHeight * 0.04),
+
+                // Badge de statut
+                Container(
+                  padding: EdgeInsets.symmetric(
+                    horizontal: screenWidth * 0.06,
+                    vertical: screenHeight * 0.015,
+                  ),
+                  decoration: BoxDecoration(
+                    color: Colors.amber.withOpacity(0.2),
+                    borderRadius: BorderRadius.circular(50),
+                    border: Border.all(
+                      color: Colors.amber.withOpacity(0.3),
+                      width: 1,
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Développement en cours',
-                      style: TextStyle(
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.engineering,
                         color: Colors.amber[700],
-                        fontWeight: FontWeight.bold,
+                        size: screenWidth * 0.06,
                       ),
-                    ),
-                  ],
-                ),
-              ),
-
-              // Info supplémentaire
-              const SizedBox(height: 24),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.blue.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                    color: Colors.blue.withOpacity(0.2),
+                      SizedBox(width: screenWidth * 0.02),
+                      Text(
+                        'Développement en cours',
+                        style: TextStyle(
+                          color: Colors.amber[700],
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: AppColors.primaryBlue,
+
+                // Info supplémentaire
+                SizedBox(height: screenHeight * 0.03),
+                Container(
+                  padding: EdgeInsets.all(screenWidth * 0.04),
+                  decoration: BoxDecoration(
+                    color: Colors.blue.withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: Colors.blue.withOpacity(0.2),
                     ),
-                    const SizedBox(width: 8),
-                    Text(
-                      'Version bêta prévue prochainement',
-                      style: TextStyle(
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(
+                        Icons.info_outline,
                         color: AppColors.primaryBlue,
-                        fontWeight: FontWeight.w500,
+                        size: screenWidth * 0.06,
                       ),
-                    ),
-                  ],
+                      SizedBox(width: screenWidth * 0.02),
+                      Text(
+                        'Version bêta prévue prochainement',
+                        style: TextStyle(
+                          color: AppColors.primaryBlue,
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

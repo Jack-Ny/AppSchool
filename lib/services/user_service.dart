@@ -1,3 +1,4 @@
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/user.dart';
 import 'package:uuid/uuid.dart';
@@ -5,6 +6,20 @@ import '../config/supabase_config.dart';
 
 class UserService {
   final _supabase = SupabaseConfig.client;
+
+  // verification
+  Future<bool> isAdmin() async {
+    final user = _supabase.auth.currentUser;
+    if (user == null) return false;
+
+    final response = await _supabase
+        .from('users')
+        .select('user_type')
+        .eq('id', user.id)
+        .single();
+
+    return response['user_type'] == 'admin';
+  }
 
   Future<List<Map<String, dynamic>>> getStudents() async {
     final students = await _supabase.from('users').select('''
@@ -19,13 +34,16 @@ class UserService {
 // obtenir l'utilisateur courant
   Future<AppUser> getCurrentUser() async {
     try {
-      final userId = _supabase.auth.currentUser?.id;
+      // Récupérer l'ID utilisateur stocké localement
+      final prefs = await SharedPreferences.getInstance();
+      final userId = prefs.getString('connected_user_id');
+
       if (userId == null) throw Exception('Utilisateur non connecté');
 
       final response =
           await _supabase.from('users').select().eq('id', userId).single();
 
-      return response;
+      return AppUser.fromJson(response);
     } catch (e) {
       throw Exception('Erreur lors de la récupération du profil');
     }
@@ -42,6 +60,10 @@ class UserService {
     required String userType,
     List<String>? studentIds, // Changé pour gérer plusieurs étudiants
   }) async {
+    if (!(await isAdmin())) {
+      throw Exception('Seul un admin peut créer des utilisateurs');
+    }
+
     AuthResponse? authResponse;
     try {
       // Créer un utilisateur dans auth.users
@@ -130,6 +152,9 @@ class UserService {
   }
 
   Future<void> deleteUser(String userId) async {
+    if (!(await isAdmin())) {
+      throw Exception('Seul un admin peut supprimer des utilisateurs');
+    }
     try {
       // 1. D'abord vérifier si l'utilisateur existe
       final userExists = await _supabase

@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../config/supabase_config.dart';
 import '../models/user.dart';
@@ -101,6 +102,12 @@ class AuthService {
       if (response.user == null) {
         throw AuthException('Échec de la connexion');
       }
+
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('connected_user_id', response.user!.id);
+
+      // Optionnel : Afficher un message de succès
+      print("Connexion réussie pour l'utilisateur : ${response.user!.email}");
 
       final userData = await _supabase
           .from('users')

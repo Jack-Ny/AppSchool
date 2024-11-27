@@ -320,8 +320,8 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
       // 7. Navigation sécurisée
       if (mounted) {
-        print('Navigation vers la page précédente');
-        Navigator.of(context).pop(true); // Simplifié pour plus de robustesse
+        Navigator.pushReplacementNamed(
+            context, '/admin/courses'); // Simplifié pour plus de robustesse
       }
     } catch (e) {
       print('Erreur lors de la sauvegarde: $e');
@@ -913,7 +913,7 @@ class _TPCardState extends State<TPCard> {
                                 allowMultiple: true,
                                 type: FileType.any,
                               );
-                              if (result != null) {
+                              if (result != null && result.files.isNotEmpty) {
                                 setState(() {
                                   widget.tp.files ??= [];
                                   widget.tp.files!.addAll(
@@ -921,6 +921,12 @@ class _TPCardState extends State<TPCard> {
                                         .map((file) => File(file.path!)),
                                   );
                                 });
+                              } else {
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  const SnackBar(
+                                    content: Text('Aucun fichier sélectionné'),
+                                  ),
+                                );
                               }
                             },
                             icon: const Icon(Icons.upload_file),

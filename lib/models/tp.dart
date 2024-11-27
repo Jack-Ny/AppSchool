@@ -33,10 +33,11 @@ class TP {
     List<String>? fileUrls,
     this.files,
     this.module,
-    this.submissions = const [],
+    List<TPSubmission>? submissions,
   })  : this.id = id ?? const Uuid().v4(),
         this.createdAt = createdAt ?? DateTime.now(),
-        this.fileUrls = fileUrls ?? [];
+        this.fileUrls = fileUrls ?? [],
+        this.submissions = submissions ?? [];
 
   Map<String, dynamic> toJson() {
     return {
@@ -48,7 +49,7 @@ class TP {
       'max_points': maxPoints,
       'is_active': isActive,
       'created_at': createdAt.toIso8601String(),
-      'file_urls': fileUrls,
+      'file_urls': fileUrls.toList(),
     };
   }
 
@@ -58,11 +59,44 @@ class TP {
       moduleId: json['module_id'],
       title: json['title'],
       description: json['description'],
-      dueDate: json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
+      dueDate:
+          json['due_date'] != null ? DateTime.parse(json['due_date']) : null,
       maxPoints: json['max_points'],
       isActive: json['is_active'] ?? true,
       createdAt: DateTime.parse(json['created_at']),
-      fileUrls: List<String>.from(json['file_urls'] ?? []),
+      fileUrls:
+          (json['file_urls'] as List?)?.map((e) => e.toString()).toList() ?? [],
+    );
+  }
+
+// methode pour copier
+  TP copyWith({
+    String? id,
+    String? moduleId,
+    String? title,
+    String? description,
+    DateTime? dueDate,
+    int? maxPoints,
+    bool? isActive,
+    DateTime? createdAt,
+    List<String>? fileUrls,
+    List<File>? files,
+    Module? module,
+    List<TPSubmission>? submissions,
+  }) {
+    return TP(
+      id: id ?? this.id,
+      moduleId: moduleId ?? this.moduleId,
+      title: title ?? this.title,
+      description: description ?? this.description,
+      dueDate: dueDate ?? this.dueDate,
+      maxPoints: maxPoints ?? this.maxPoints,
+      isActive: isActive ?? this.isActive,
+      createdAt: createdAt ?? this.createdAt,
+      fileUrls: fileUrls ?? this.fileUrls,
+      files: files ?? this.files,
+      module: module ?? this.module,
+      submissions: submissions ?? this.submissions,
     );
   }
 }
