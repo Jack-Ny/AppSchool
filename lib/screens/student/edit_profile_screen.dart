@@ -3,7 +3,7 @@ import 'package:image_picker/image_picker.dart';
 import '../../constants/colors.dart';
 
 class EditStudentProfileScreen extends StatefulWidget {
-  const EditStudentProfileScreen({Key? key}) : super(key: key);
+  const EditStudentProfileScreen({super.key});
 
   @override
   State<EditStudentProfileScreen> createState() =>
@@ -38,7 +38,7 @@ class _EditStudentProfileScreenState extends State<EditStudentProfileScreen> {
       builder: (context, child) {
         return Theme(
           data: ThemeData.light().copyWith(
-            colorScheme: ColorScheme.light(
+            colorScheme: const ColorScheme.light(
               primary: AppColors.primaryBlue,
             ),
           ),
@@ -251,9 +251,9 @@ class _EditStudentProfileScreenState extends State<EditStudentProfileScreen> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
                     'Enregistrer',
                     style: TextStyle(

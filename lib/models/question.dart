@@ -43,10 +43,10 @@ class Question {
     DateTime? createdAt,
     this.quiz,
     List<String>? choices,
-  })  : this.id = id ?? const Uuid().v4(),
-        this.questionType = questionType,
-        this.createdAt = createdAt ?? DateTime.now(),
-        this.choices = choices ?? [] {
+  })  : id = id ?? const Uuid().v4(),
+        questionType = questionType,
+        createdAt = createdAt ?? DateTime.now(),
+        choices = choices ?? [] {
     if (!validTypes.contains(this.questionType)) {
       throw ArgumentError(
           'Type de question invalide: $questionType. Les types valides sont: $validTypes');

@@ -14,7 +14,7 @@ class CustomTextField extends StatelessWidget {
   final Function(String)? onChanged;
 
   const CustomTextField({
-    Key? key,
+    super.key,
     required this.controller,
     required this.hintText,
     required this.prefixIcon,
@@ -25,7 +25,7 @@ class CustomTextField extends StatelessWidget {
     this.textInputAction,
     this.onFieldSubmitted,
     this.onChanged,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

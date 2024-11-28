@@ -31,9 +31,9 @@ class Module {
     this.course,
     this.tps = const [],
     this.quizzes = const [],
-  })  : this.id = id ?? const Uuid().v4(),
-        this.createdAt = createdAt ?? DateTime.now(),
-        this.updatedAt = updatedAt ?? DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() {
     return {

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class StudentProfileScreen extends StatefulWidget {
-  const StudentProfileScreen({Key? key}) : super(key: key);
+  const StudentProfileScreen({super.key});
 
   @override
   State<StudentProfileScreen> createState() => _StudentProfileScreenState();
 }
 
 class _StudentProfileScreenState extends State<StudentProfileScreen> {
-  int _selectedIndex = 4; // Pour la bottomNavigationBar (PROFILS)
+  final int _selectedIndex = 4; // Pour la bottomNavigationBar (PROFILS)
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -128,9 +128,9 @@ class _StudentProfileScreenState extends State<StudentProfileScreen> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
                     'Modifier',
                     style: TextStyle(

@@ -1,11 +1,10 @@
 import 'package:app_school/config/supabase_config.dart';
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/colors.dart';
 import '../../services/user_service.dart';
 
 class UsersScreen extends StatefulWidget {
-  const UsersScreen({Key? key}) : super(key: key);
+  const UsersScreen({super.key});
 
   @override
   State<UsersScreen> createState() => _UsersScreenState();
@@ -528,7 +527,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                     AppColors.primaryBlue.withOpacity(0.1),
                                 child: Text(
                                   user['name'].toString()[0].toUpperCase(),
-                                  style: TextStyle(
+                                  style: const TextStyle(
                                     color: AppColors.primaryBlue,
                                     fontWeight: FontWeight.bold,
                                   ),
@@ -558,7 +557,7 @@ class _UsersScreenState extends State<UsersScreen> {
                                     ),
                                     child: Text(
                                       _getUserTypeDisplay(user['user_type']),
-                                      style: TextStyle(
+                                      style: const TextStyle(
                                         color: AppColors.primaryBlue,
                                         fontSize: 12,
                                       ),

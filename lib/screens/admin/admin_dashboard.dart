@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class AdminDashboard extends StatefulWidget {
-  const AdminDashboard({Key? key}) : super(key: key);
+  const AdminDashboard({super.key});
 
   @override
   State<AdminDashboard> createState() => _AdminDashboardState();
@@ -207,8 +207,8 @@ class _AdminDashboardState extends State<AdminDashboard> {
                             Navigator.pushReplacementNamed(
                                 context, '/admin/courses');
                           },
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Text('VOIR TOUS',
                                   style: TextStyle(color: Colors.blue)),
                               Icon(Icons.chevron_right, color: Colors.blue),
@@ -237,10 +237,10 @@ class _AdminDashboardState extends State<AdminDashboard> {
                       child: _isLoading
                           ? const Center(child: CircularProgressIndicator())
                           : _courses.isEmpty
-                              ? Center(
+                              ? const Center(
                                   child: Column(
                                     mainAxisAlignment: MainAxisAlignment.center,
-                                    children: const [
+                                    children: [
                                       Icon(Icons.school_outlined,
                                           size: 64, color: Colors.grey),
                                       SizedBox(height: 16),
@@ -439,7 +439,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
               ),
               child: Text(
                 course['category'],
-                style: TextStyle(
+                style: const TextStyle(
                   color: AppColors.accent,
                   fontSize: 12,
                 ),
@@ -448,7 +448,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             const SizedBox(height: 8),
             Row(
               children: [
-                Icon(Icons.people, size: 16, color: AppColors.textGrey),
+                const Icon(Icons.people, size: 16, color: AppColors.textGrey),
                 const SizedBox(width: 4),
                 Text(
                   studentCount.toString(),
@@ -470,7 +470,7 @@ class _AdminDashboardState extends State<AdminDashboard> {
             ),
           ],
         ),
-        trailing: Icon(
+        trailing: const Icon(
           Icons.bookmark_border,
           color: AppColors.accent,
         ),

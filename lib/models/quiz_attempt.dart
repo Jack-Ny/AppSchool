@@ -29,8 +29,8 @@ class QuizAttempt {
     this.quiz,
     this.student,
     this.responses = const [],
-  })  : this.id = id ?? const Uuid().v4(),
-        this.startTime = startTime ?? DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        startTime = startTime ?? DateTime.now();
 
   Map<String, dynamic> toJson() {
     return {
@@ -50,7 +50,8 @@ class QuizAttempt {
       studentId: json['student_id'],
       quizId: json['quiz_id'],
       startTime: DateTime.parse(json['start_time']),
-      endTime: json['end_time'] != null ? DateTime.parse(json['end_time']) : null,
+      endTime:
+          json['end_time'] != null ? DateTime.parse(json['end_time']) : null,
       score: json['score'],
       isCompleted: json['is_completed'] ?? false,
     );

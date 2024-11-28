@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class StudentDashboard extends StatefulWidget {
-  const StudentDashboard({Key? key}) : super(key: key);
+  const StudentDashboard({super.key});
 
   @override
   State<StudentDashboard> createState() => _StudentDashboardState();
@@ -137,8 +137,8 @@ class _StudentDashboardState extends State<StudentDashboard> {
                             Navigator.pushReplacementNamed(
                                 context, '/student/courses');
                           },
-                          child: Row(
-                            children: const [
+                          child: const Row(
+                            children: [
                               Text(
                                 'VOIR TOUS',
                                 style: TextStyle(color: Colors.blue),
@@ -317,7 +317,7 @@ class _StudentDashboardState extends State<StudentDashboard> {
                   ),
                   child: Text(
                     course['category'],
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.primaryBlue,
                       fontSize: 12,
                     ),

@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class StudentRanksScreen extends StatefulWidget {
-  const StudentRanksScreen({Key? key}) : super(key: key);
+  const StudentRanksScreen({super.key});
 
   @override
   State<StudentRanksScreen> createState() => _StudentRanksScreenState();
 }
 
 class _StudentRanksScreenState extends State<StudentRanksScreen> {
-  int _selectedIndex = 3;
+  final int _selectedIndex = 3;
   String currentUserId = "3"; // ID de l'élève connecté
 
   final List<Map<String, dynamic>> _topThree = [

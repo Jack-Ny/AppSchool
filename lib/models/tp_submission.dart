@@ -33,8 +33,8 @@ class TPSubmission {
     this.tp,
     this.student,
     this.gradedByTeacher,
-  })  : this.id = id ?? const Uuid().v4(),
-        this.submissionDate = submissionDate ?? DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        submissionDate = submissionDate ?? DateTime.now();
 
   Map<String, dynamic> toJson() {
     return {
@@ -60,7 +60,8 @@ class TPSubmission {
       submissionDate: DateTime.parse(json['submission_date']),
       grade: json['grade'],
       gradedBy: json['graded_by'],
-      gradedAt: json['graded_at'] != null ? DateTime.parse(json['graded_at']) : null,
+      gradedAt:
+          json['graded_at'] != null ? DateTime.parse(json['graded_at']) : null,
     );
   }
 }

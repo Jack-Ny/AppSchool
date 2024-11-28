@@ -11,7 +11,7 @@ import '../../services/course_service.dart';
 import '../../services/user_service.dart';
 
 class AddCourseScreen extends StatefulWidget {
-  const AddCourseScreen({Key? key}) : super(key: key);
+  const AddCourseScreen({super.key});
 
   @override
   State<AddCourseScreen> createState() => _AddCourseScreenState();
@@ -24,7 +24,7 @@ class _AddCourseScreenState extends State<AddCourseScreen> {
 
   String _courseName = '';
   String _courseDescription = '';
-  List<Module> _modules = [];
+  final List<Module> _modules = [];
   bool _isLoading = false;
 
   @override
@@ -350,10 +350,10 @@ class QuizCard extends StatefulWidget {
   final VoidCallback onDelete;
 
   const QuizCard({
-    Key? key,
+    super.key,
     required this.quiz,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   State<QuizCard> createState() => _QuizCardState();
@@ -388,7 +388,7 @@ class _QuizCardState extends State<QuizCard> {
                   children: [
                     Expanded(
                       child: TextFormField(
-                        initialValue: widget.quiz.timeLimit?.toString(),
+                        initialValue: widget.quiz.timeLimit.toString(),
                         decoration: const InputDecoration(
                           labelText: 'Temps limite',
                           border: OutlineInputBorder(),
@@ -401,7 +401,7 @@ class _QuizCardState extends State<QuizCard> {
                     const SizedBox(width: 16),
                     Expanded(
                       child: TextFormField(
-                        initialValue: widget.quiz.passingScore?.toString(),
+                        initialValue: widget.quiz.passingScore.toString(),
                         decoration: const InputDecoration(
                           labelText: 'Score minimum (%)',
                           border: OutlineInputBorder(),
@@ -482,10 +482,10 @@ class QuestionCard extends StatefulWidget {
   final VoidCallback onDelete;
 
   const QuestionCard({
-    Key? key,
+    super.key,
     required this.question,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   State<QuestionCard> createState() => _QuestionCardState();
@@ -499,7 +499,7 @@ class _QuestionCardState extends State<QuestionCard> {
     super.initState();
     // Initialiser les choix si vides pour le type selection
     if (widget.question.questionType == 'selection' &&
-        (widget.question.choices?.isEmpty ?? true)) {
+        (widget.question.choices.isEmpty ?? true)) {
       widget.question.choices = [''];
     }
   }
@@ -644,7 +644,7 @@ class _QuestionCardState extends State<QuestionCard> {
       children: [
         Text('Réponses:', style: Theme.of(context).textTheme.titleMedium),
         const SizedBox(height: 8),
-        ...widget.question.choices!.asMap().entries.map(_buildChoiceItem),
+        ...widget.question.choices.asMap().entries.map(_buildChoiceItem),
         const SizedBox(height: 8),
         Center(
           child: FilledButton.icon(
@@ -781,10 +781,10 @@ class TPCard extends StatefulWidget {
   final VoidCallback onDelete;
 
   const TPCard({
-    Key? key,
+    super.key,
     required this.tp,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   State<TPCard> createState() => _TPCardState();

@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
 import '../../services/student_service.dart';
 
 class CourseStudentsScreen extends StatefulWidget {
@@ -7,10 +6,10 @@ class CourseStudentsScreen extends StatefulWidget {
   final String courseId;
 
   const CourseStudentsScreen({
-    Key? key,
+    super.key,
     required this.courseName,
     required this.courseId,
-  }) : super(key: key);
+  });
 
   @override
   State<CourseStudentsScreen> createState() => _CourseStudentsScreenState();
@@ -226,9 +225,9 @@ class _CourseStudentsScreenState extends State<CourseStudentsScreen> {
                         vertical: 12,
                       ),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisSize: MainAxisSize.min,
-                      children: const [
+                      children: [
                         Text(
                           'Ajouter un élève',
                           style: TextStyle(

@@ -24,7 +24,7 @@ class QuestionResponse {
     required this.pointsEarned,
     this.attempt,
     this.question,
-  }) : this.id = id ?? const Uuid().v4();
+  }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {

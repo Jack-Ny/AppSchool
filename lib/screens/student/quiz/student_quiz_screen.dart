@@ -1,10 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../constants/colors.dart';
-import '../../../models/quiz.dart';
-import '../../../models/question.dart';
-import '../../../models/teacher.dart';
-import 'quiz_result_screen.dart';
 
 class StudentQuizScreen extends StatefulWidget {
   final String moduleId;
@@ -13,12 +7,12 @@ class StudentQuizScreen extends StatefulWidget {
   final String courseTitle;
 
   const StudentQuizScreen({
-    Key? key,
+    super.key,
     required this.moduleId,
     required this.quizId,
     required this.moduleTitle,
     required this.courseTitle,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentQuizScreen> createState() => _StudentQuizScreenState();
@@ -29,9 +23,9 @@ class _StudentQuizScreenState extends State<StudentQuizScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Student Quiz Screen'),
+        title: const Text('Student Quiz Screen'),
       ),
-      body: Center(
+      body: const Center(
         child: Text('Quiz Screen Content'),
       ),
     );

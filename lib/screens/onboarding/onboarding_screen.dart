@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
-import '../../constants/text_styles.dart';
 import '../auth/login_screen.dart';
 
 class OnboardingScreen extends StatelessWidget {
-  const OnboardingScreen({Key? key}) : super(key: key);
+  const OnboardingScreen({super.key});
 
   void _navigateToLogin(BuildContext context) {
     Navigator.pushReplacement(
@@ -41,13 +40,13 @@ class OnboardingScreen extends StatelessWidget {
             ),
 
             // Contenu principal
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   // Titre
-                  const Text(
+                  Text(
                     'Quizz & TP en ligne',
                     style: TextStyle(
                       fontSize: 28,
@@ -56,9 +55,9 @@ class OnboardingScreen extends StatelessWidget {
                     ),
                     textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 16),
+                  SizedBox(height: 16),
                   // Sous-titre
-                  const Text(
+                  Text(
                     'Ameliorez vos competences en faisant nos differentes quizz et TP .',
                     style: TextStyle(
                       fontSize: 16,

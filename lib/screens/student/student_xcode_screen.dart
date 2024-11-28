@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class StudentXCodeScreen extends StatefulWidget {
-  const StudentXCodeScreen({Key? key}) : super(key: key);
+  const StudentXCodeScreen({super.key});
 
   @override
   State<StudentXCodeScreen> createState() => _StudentXCodeScreenState();
 }
 
 class _StudentXCodeScreenState extends State<StudentXCodeScreen> {
-  int _selectedIndex = 2; // Pour la bottomNavigationBar (XCODE)
+  final int _selectedIndex = 2; // Pour la bottomNavigationBar (XCODE)
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -64,7 +64,7 @@ class _StudentXCodeScreenState extends State<StudentXCodeScreen> {
                   color: AppColors.primaryBlue.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(100),
                 ),
-                child: Icon(
+                child: const Icon(
                   Icons.code,
                   size: 100,
                   color: AppColors.primaryBlue,

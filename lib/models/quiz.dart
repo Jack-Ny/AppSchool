@@ -31,8 +31,8 @@ class Quiz {
     this.module,
     this.questions = const [],
     this.attempts = const [],
-  })  : this.id = id ?? const Uuid().v4(),
-        this.createdAt = createdAt ?? DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now();
 
   Map<String, dynamic> toJson() {
     return {

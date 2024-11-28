@@ -3,7 +3,7 @@ import '../../constants/colors.dart';
 import '../../widgets/custom_text_field.dart';
 
 class CreateNewPasswordScreen extends StatefulWidget {
-  const CreateNewPasswordScreen({Key? key}) : super(key: key);
+  const CreateNewPasswordScreen({super.key});
 
   @override
   State<CreateNewPasswordScreen> createState() =>
@@ -113,9 +113,9 @@ class _CreateNewPasswordScreenState extends State<CreateNewPasswordScreen> {
                   borderRadius: BorderRadius.circular(30),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
-                children: const [
+                children: [
                   Text(
                     'Continue',
                     style: TextStyle(

@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../../widgets/custom_text_field.dart';
 import '../../services/auth_service.dart';
-import '../../models/user.dart'; // Assurez-vous que c'est votre AppUser
+// Assurez-vous que c'est votre AppUser
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -130,9 +130,9 @@ class _LoginScreenState extends State<LoginScreen> {
                           ),
                         ),
                         const SizedBox(width: 12),
-                        Column(
+                        const Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
-                          children: const [
+                          children: [
                             Text(
                               'TPsc',
                               style: TextStyle(
@@ -296,9 +296,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               strokeWidth: 2.5,
                             ),
                           )
-                        : Row(
+                        : const Row(
                             mainAxisAlignment: MainAxisAlignment.center,
-                            children: const [
+                            children: [
                               Text(
                                 'Connexion',
                                 style: TextStyle(

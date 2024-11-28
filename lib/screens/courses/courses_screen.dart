@@ -1,11 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../constants/colors.dart';
 import '../../services/course_service.dart';
 import 'course_students_screen.dart';
 
 class CoursesScreen extends StatefulWidget {
-  const CoursesScreen({Key? key}) : super(key: key);
+  const CoursesScreen({super.key});
 
   @override
   State<CoursesScreen> createState() => _CoursesScreenState();
@@ -297,7 +296,7 @@ class _CoursesScreenState extends State<CoursesScreen> {
                   ),
                   child: Text(
                     course['category'] ?? 'Non catégorisé',
-                    style: TextStyle(
+                    style: const TextStyle(
                       color: AppColors.primaryBlue,
                       fontSize: 12,
                     ),
@@ -357,17 +356,17 @@ class _CoursesScreenState extends State<CoursesScreen> {
                     const Spacer(),
                     TextButton(
                       onPressed: () => _showEditCourseDialog(course),
-                      child: const Text('Modifier'),
                       style: TextButton.styleFrom(
                         foregroundColor: AppColors.primaryBlue,
                       ),
+                      child: const Text('Modifier'),
                     ),
                     TextButton(
                       onPressed: () => _confirmDeleteCourse(course['id']),
-                      child: const Text('Supprimer'),
                       style: TextButton.styleFrom(
                         foregroundColor: Colors.red,
                       ),
+                      child: const Text('Supprimer'),
                     ),
                   ],
                 ),
@@ -465,8 +464,8 @@ class _CoursesScreenState extends State<CoursesScreen> {
           ),
           TextButton(
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Supprimer'),
             style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Supprimer'),
           ),
         ],
       ),

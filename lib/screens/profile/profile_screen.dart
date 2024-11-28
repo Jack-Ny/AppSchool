@@ -2,10 +2,9 @@ import 'package:app_school/models/user.dart';
 import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 import '../../services/user_service.dart';
-import 'edit_profile_screen.dart';
 
 class ProfileScreen extends StatefulWidget {
-  const ProfileScreen({Key? key}) : super(key: key);
+  const ProfileScreen({super.key});
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -13,7 +12,7 @@ class ProfileScreen extends StatefulWidget {
 
 class _ProfileScreenState extends State<ProfileScreen> {
   final UserService _userService = UserService();
-  int _selectedIndex = 4; // Index pour la bottomNavigationBar (PROFILS)
+  final int _selectedIndex = 4; // Index pour la bottomNavigationBar (PROFILS)
   AppUser? _userData;
   bool _loading = true;
 
@@ -152,9 +151,9 @@ class _ProfileScreenState extends State<ProfileScreen> {
                         borderRadius: BorderRadius.circular(30),
                       ),
                     ),
-                    child: Row(
+                    child: const Row(
                       mainAxisAlignment: MainAxisAlignment.center,
-                      children: const [
+                      children: [
                         Text(
                           'Déconnexion',
                           style: TextStyle(

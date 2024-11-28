@@ -8,12 +8,12 @@ class QuizResultScreen extends StatelessWidget {
   final VoidCallback onReturnPressed;
 
   const QuizResultScreen({
-    Key? key,
+    super.key,
     required this.score,
     required this.totalQuestions,
     required this.userName,
     required this.onReturnPressed,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

@@ -1,5 +1,4 @@
 import 'package:app_school/config/supabase_config.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/module.dart';
 import '../models/quiz.dart';
 import '../models/tp.dart';

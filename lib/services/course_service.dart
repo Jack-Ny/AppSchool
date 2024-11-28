@@ -151,9 +151,8 @@ class CourseService {
                 await uploadFile(filePath, file);
 
                 // Récupération de l'URL publique
-                final fileUrl = await _supabase.storage
-                    .from('tp_files')
-                    .getPublicUrl(filePath);
+                final fileUrl =
+                    _supabase.storage.from('tp_files').getPublicUrl(filePath);
 
                 uploadedUrls.add(fileUrl);
               } catch (e) {
@@ -224,7 +223,7 @@ class CourseService {
 
       // Traiter chaque module
       for (var module in modules) {
-        if (module.id != null && existingModuleIds.contains(module.id)) {
+        if (existingModuleIds.contains(module.id)) {
           // Mise à jour module existant
           final moduleData = {
             'name': module.name,
@@ -240,144 +239,70 @@ class CourseService {
 
           // Mise à jour des quiz
           for (var quiz in module.quizzes) {
-            if (quiz.id != null) {
-              final quizData = {
-                'title': quiz.title,
-                'time_limit': quiz.timeLimit,
-                'time_unit': quiz.timeUnit,
-                'passing_score': quiz.passingScore,
-                'is_active': quiz.isActive,
+            final quizData = {
+              'title': quiz.title,
+              'time_limit': quiz.timeLimit,
+              'time_unit': quiz.timeUnit,
+              'passing_score': quiz.passingScore,
+              'is_active': quiz.isActive,
+            };
+
+            await _supabase.from('quizzes').update(quizData).eq('id', quiz.id);
+
+            // Supprimer anciennes questions
+            await _supabase.from('questions').delete().eq('quiz_id', quiz.id);
+
+            // Créer nouvelles questions
+            for (var question in quiz.questions) {
+              final questionData = {
+                'quiz_id': quiz.id,
+                'question_text': question.questionText,
+                'question_type': question.questionType,
+                'answer': question.answer,
+                'points': question.points,
+                'choices': question.choices,
               };
 
-              await _supabase
-                  .from('quizzes')
-                  .update(quizData)
-                  .eq('id', quiz.id);
-
-              // Supprimer anciennes questions
-              await _supabase.from('questions').delete().eq('quiz_id', quiz.id);
-
-              // Créer nouvelles questions
-              for (var question in quiz.questions) {
-                final questionData = {
-                  'quiz_id': quiz.id,
-                  'question_text': question.questionText,
-                  'question_type': question.questionType,
-                  'answer': question.answer,
-                  'points': question.points,
-                  'choices': question.choices,
-                };
-
-                await _supabase.from('questions').insert(questionData);
-              }
-            } else {
-              // Nouveau quiz - créer un nouveau quiz
-              final quizData = {
-                'module_id': module.id,
-                'title': quiz.title,
-                'time_limit': quiz.timeLimit,
-                'time_unit': quiz.timeUnit,
-                'passing_score': quiz.passingScore,
-                'is_active': quiz.isActive,
-              };
-
-              final quizResponse = await _supabase
-                  .from('quizzes')
-                  .insert(quizData)
-                  .select()
-                  .single();
-
-              final quizId = quizResponse['id'];
-
-              // Créer les questions pour le nouveau quiz
-              for (var question in quiz.questions) {
-                final questionData = {
-                  'quiz_id': quizId,
-                  'question_text': question.questionText,
-                  'question_type': question.questionType,
-                  'answer': question.answer,
-                  'points': question.points,
-                  'choices': question.choices,
-                };
-
-                await _supabase.from('questions').insert(questionData);
-              }
+              await _supabase.from('questions').insert(questionData);
             }
           }
 
           // Mise à jour des TPs
           for (var tp in module.tps) {
-            if (tp.id != null) {
-              List<String> uploadedUrls = [...tp.fileUrls];
+            List<String> uploadedUrls = [...tp.fileUrls];
 
-              // Gérer nouveaux fichiers
-              if (tp.files != null && tp.files!.isNotEmpty) {
-                for (var file in tp.files!) {
-                  final fileExt = file.path.split('.').last;
-                  final fileName =
-                      '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
-                  final filePath = 'tps/$fileName';
+            // Gérer nouveaux fichiers
+            if (tp.files != null && tp.files!.isNotEmpty) {
+              for (var file in tp.files!) {
+                final fileExt = file.path.split('.').last;
+                final fileName =
+                    '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
+                final filePath = 'tps/$fileName';
 
-                  try {
-                    await uploadFile(filePath, file);
+                try {
+                  await uploadFile(filePath, file);
 
-                    final fileUrl = await _supabase.storage
-                        .from('tp_files')
-                        .getPublicUrl(filePath);
+                  final fileUrl = _supabase.storage
+                      .from('tp_files')
+                      .getPublicUrl(filePath);
 
-                    uploadedUrls.add(fileUrl);
-                  } catch (e) {
-                    print('Erreur upload fichier: $e');
-                  }
+                  uploadedUrls.add(fileUrl);
+                } catch (e) {
+                  print('Erreur upload fichier: $e');
                 }
               }
-
-              final tpData = {
-                'title': tp.title,
-                'description': tp.description,
-                'due_date': tp.dueDate?.toIso8601String(),
-                'max_points': tp.maxPoints,
-                'is_active': tp.isActive,
-                'file_urls': uploadedUrls,
-              };
-
-              await _supabase.from('tps').update(tpData).eq('id', tp.id);
-            } else {
-              List<String> uploadedUrls = [];
-
-              if (tp.files != null && tp.files!.isNotEmpty) {
-                for (var file in tp.files!) {
-                  final fileExt = file.path.split('.').last;
-                  final fileName =
-                      '${DateTime.now().millisecondsSinceEpoch}_${file.path.split('/').last}';
-                  final filePath = 'tps/$fileName';
-
-                  try {
-                    await uploadFile(filePath, file);
-
-                    final fileUrl = await _supabase.storage
-                        .from('tp_files')
-                        .getPublicUrl(filePath);
-
-                    uploadedUrls.add(fileUrl);
-                  } catch (e) {
-                    print('Erreur upload fichier: $e');
-                  }
-                }
-              }
-
-              final tpData = {
-                'module_id': module.id,
-                'title': tp.title,
-                'description': tp.description,
-                'due_date': tp.dueDate?.toIso8601String(),
-                'max_points': tp.maxPoints,
-                'is_active': tp.isActive,
-                'file_urls': uploadedUrls,
-              };
-
-              await _supabase.from('tps').insert(tpData);
             }
+
+            final tpData = {
+              'title': tp.title,
+              'description': tp.description,
+              'due_date': tp.dueDate?.toIso8601String(),
+              'max_points': tp.maxPoints,
+              'is_active': tp.isActive,
+              'file_urls': uploadedUrls,
+            };
+
+            await _supabase.from('tps').update(tpData).eq('id', tp.id);
           }
         } else {
           final moduleData = {
@@ -400,7 +325,7 @@ class CourseService {
 
       // Supprimer modules qui ne sont plus présents
       final newModuleIds =
-          modules.where((m) => m.id != null).map((m) => m.id!).toList();
+          modules.where((m) => m.id != null).map((m) => m.id).toList();
 
       final modulesToDelete =
           existingModuleIds.where((id) => !newModuleIds.contains(id)).toList();
@@ -434,7 +359,7 @@ class CourseService {
     await _supabase.storage.from('tp_files').uploadBinary(
           filePath,
           bytes,
-          fileOptions: FileOptions(
+          fileOptions: const FileOptions(
             contentType: 'application/octet-stream',
           ),
         );

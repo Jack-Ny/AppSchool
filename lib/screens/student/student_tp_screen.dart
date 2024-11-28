@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
-import '../../constants/colors.dart';
 
 class StudentTPScreen extends StatefulWidget {
   final String moduleTitle;
   final String courseTitle;
 
   const StudentTPScreen({
-    Key? key,
+    super.key,
     required this.moduleTitle,
     required this.courseTitle,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentTPScreen> createState() => _StudentTPScreenState();

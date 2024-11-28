@@ -10,11 +10,11 @@ class StudentCourseDetailScreen extends StatefulWidget {
   final String courseTitle;
 
   const StudentCourseDetailScreen({
-    Key? key,
+    super.key,
     required this.tpId,
     required this.courseId,
     required this.courseTitle,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentCourseDetailScreen> createState() =>
@@ -157,9 +157,9 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
         Container(
           height: 240,
           width: double.infinity,
-          decoration: BoxDecoration(
+          decoration: const BoxDecoration(
             color: AppColors.primaryBlue,
-            image: const DecorationImage(
+            image: DecorationImage(
               image: AssetImage('assets/images/code_bg.jpg'),
               fit: BoxFit.cover,
             ),
@@ -237,7 +237,7 @@ class _StudentCourseDetailScreenState extends State<StudentCourseDetailScreen> {
             children: [
               Text(
                 module['name'],
-                style: TextStyle(
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: AppColors.primaryBlue,

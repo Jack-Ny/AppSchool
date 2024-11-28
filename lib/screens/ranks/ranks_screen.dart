@@ -3,14 +3,14 @@ import '../../constants/colors.dart';
 import '../../services/ranks_service.dart';
 
 class RanksScreen extends StatefulWidget {
-  const RanksScreen({Key? key}) : super(key: key);
+  const RanksScreen({super.key});
 
   @override
   State<RanksScreen> createState() => _RanksScreenState();
 }
 
 class _RanksScreenState extends State<RanksScreen> {
-  int _selectedIndex = 3; // Index pour la bottomNavigationBar (RANGS)
+  final int _selectedIndex = 3; // Index pour la bottomNavigationBar (RANGS)
   final RanksService _ranksService = RanksService();
   bool _loading = true;
   List<Map<String, dynamic>> _ranks = [];
@@ -82,10 +82,10 @@ class _RanksScreenState extends State<RanksScreen> {
       body: _loading
           ? const Center(child: CircularProgressIndicator())
           : _ranks.isEmpty
-              ? Center(
+              ? const Center(
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
-                    children: const [
+                    children: [
                       Icon(Icons.emoji_events_outlined,
                           size: 80, color: Colors.grey),
                       SizedBox(height: 16),
@@ -293,10 +293,10 @@ Widget _buildRankListItem(Map<String, dynamic> rank, int position) {
         ),
         const SizedBox(width: 15),
         // Avatar
-        CircleAvatar(
+        const CircleAvatar(
           radius: 25,
-          backgroundColor: const Color(0xFFE6E6FA),
-          child: const Icon(Icons.person, color: Colors.white),
+          backgroundColor: Color(0xFFE6E6FA),
+          child: Icon(Icons.person, color: Colors.white),
         ),
         const SizedBox(width: 15),
         // Nom et points

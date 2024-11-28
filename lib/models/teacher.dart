@@ -7,7 +7,7 @@ class Teacher {
   String id;
   String? userId;
   String specialization;
-  
+
   // Relations
   AppUser? user;
   List<Course> courses;
@@ -18,7 +18,7 @@ class Teacher {
     required this.specialization,
     this.user,
     this.courses = const [],
-  }) : this.id = id ?? const Uuid().v4();
+  }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {

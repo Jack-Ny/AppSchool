@@ -18,7 +18,7 @@ class Parent {
     this.phoneNumber,
     this.user,
     this.students = const [],
-  }) : this.id = id ?? const Uuid().v4();
+  }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {

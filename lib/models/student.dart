@@ -10,7 +10,7 @@ class Student {
   String registrationNumber;
   String classLevel;
   String? parentId;
-  
+
   // Relations
   User? user;
   List<Course> enrolledCourses;
@@ -25,7 +25,7 @@ class Student {
     this.user,
     this.enrolledCourses = const [],
     this.parent,
-  }) : this.id = id ?? const Uuid().v4();
+  }) : id = id ?? const Uuid().v4();
 
   Map<String, dynamic> toJson() {
     return {

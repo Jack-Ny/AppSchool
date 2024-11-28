@@ -8,10 +8,10 @@ class StudentTPScreen extends StatefulWidget {
   final String courseTitle;
 
   const StudentTPScreen({
-    Key? key,
+    super.key,
     required this.moduleTitle,
     required this.courseTitle,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentTPScreen> createState() => _StudentTPScreenState();
@@ -151,7 +151,7 @@ class _StudentTPScreenState extends State<StudentTPScreen> {
                           title: Text(file),
                           onTap: () => _openTeacherFile(file),
                         )),
-                  ).toList(),
+                  ),
                   // Bouton de téléchargement
                   ListTile(
                     title: const Text(
@@ -218,7 +218,7 @@ class _StudentTPScreenState extends State<StudentTPScreen> {
                         },
                       ),
                     )),
-              ).toList(),
+              ),
             ],
             const SizedBox(height: 20),
 

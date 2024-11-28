@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:supabase_flutter/supabase_flutter.dart' hide Provider;
 import 'package:provider/provider.dart' as provider;
-import 'package:app_school/models/quiz.dart';
 import 'package:app_school/screens/admin/admin_dashboard.dart';
 import 'package:app_school/screens/auth/create_new_password_screen.dart';
 import 'package:app_school/screens/auth/forgot_password_screen.dart';
@@ -15,12 +14,9 @@ import 'package:app_school/screens/ranks/ranks_screen.dart';
 import 'package:app_school/screens/splash/splash_screen.dart';
 import 'package:app_school/screens/student/edit_profile_screen.dart';
 import 'package:app_school/screens/student/quiz/student_quiz_screen.dart';
-import 'package:app_school/screens/student/student_course_detail_screen.dart';
-import 'package:app_school/screens/student/student_courses_screen.dart';
 import 'package:app_school/screens/student/student_dashboard.dart';
 import 'package:app_school/screens/student/student_profile_screen.dart';
 import 'package:app_school/screens/student/student_ranks_screen.dart';
-import 'package:app_school/screens/student/student_tp_screen.dart';
 import 'package:app_school/screens/student/student_xcode_screen.dart';
 import 'package:app_school/screens/xcode/xcode_screen.dart';
 import 'package:app_school/config/supabase_config.dart';
@@ -54,7 +50,7 @@ Future<void> main() async {
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({Key? key}) : super(key: key);
+  const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {

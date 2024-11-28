@@ -8,10 +8,10 @@ class StudentCoursesScreen extends StatefulWidget {
   final String courseTitle;
 
   const StudentCoursesScreen({
-    Key? key,
+    super.key,
     required this.courseId,
     required this.courseTitle,
-  }) : super(key: key);
+  });
 
   @override
   State<StudentCoursesScreen> createState() => _StudentCoursesScreenState();
@@ -19,7 +19,7 @@ class StudentCoursesScreen extends StatefulWidget {
 
 class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
   final _supabase = Supabase.instance.client;
-  int _selectedIndex = 1; // Pour la bottom navigation bar
+  final int _selectedIndex = 1; // Pour la bottom navigation bar
   List<Map<String, dynamic>> _courses = [];
   bool _isLoading = true;
 
@@ -214,7 +214,7 @@ class _StudentCoursesScreenState extends State<StudentCoursesScreen> {
                     ),
                     child: Text(
                       course['category'],
-                      style: TextStyle(
+                      style: const TextStyle(
                         color: AppColors.primaryBlue,
                         fontSize: 12,
                         fontWeight: FontWeight.w500,

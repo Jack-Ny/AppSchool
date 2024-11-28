@@ -34,10 +34,10 @@ class TP {
     this.files,
     this.module,
     List<TPSubmission>? submissions,
-  })  : this.id = id ?? const Uuid().v4(),
-        this.createdAt = createdAt ?? DateTime.now(),
-        this.fileUrls = fileUrls ?? [],
-        this.submissions = submissions ?? [];
+  })  : id = id ?? const Uuid().v4(),
+        createdAt = createdAt ?? DateTime.now(),
+        fileUrls = fileUrls ?? [],
+        submissions = submissions ?? [];
 
   Map<String, dynamic> toJson() {
     return {

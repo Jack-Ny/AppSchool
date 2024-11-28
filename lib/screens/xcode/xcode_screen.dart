@@ -2,14 +2,14 @@ import 'package:flutter/material.dart';
 import '../../constants/colors.dart';
 
 class XCodeScreen extends StatefulWidget {
-  const XCodeScreen({Key? key}) : super(key: key);
+  const XCodeScreen({super.key});
 
   @override
   State<XCodeScreen> createState() => _XCodeScreenState();
 }
 
 class _XCodeScreenState extends State<XCodeScreen> {
-  int _selectedIndex = 2;
+  final int _selectedIndex = 2;
 
   void _onBottomNavTap(int index) {
     if (_selectedIndex != index) {
@@ -174,7 +174,7 @@ class _XCodeScreenState extends State<XCodeScreen> {
                         size: screenWidth * 0.06,
                       ),
                       SizedBox(width: screenWidth * 0.02),
-                      Text(
+                      const Text(
                         'Version bêta prévue prochainement',
                         style: TextStyle(
                           color: AppColors.primaryBlue,
